@@ -142,6 +142,19 @@ ui <- dashboardPage(
                                  uiOutput("spcagree2"),
                                  br())
                         ),
+                        
+                        h4("Listing of those Attributes where Ground: Inventory ratio of means are practically different (Y) or not practically different (N) from 1.0. Attributes which are not listed here have inconclusive (I) results."),
+                                                fluidRow(
+                          column(4,
+                                 uiOutput("test1"),
+                                 br()),
+                          column(4,
+                                 uiOutput("test2"),
+                                 br()),
+                          column(4,
+                                 uiOutput("test3"),
+                                 br())
+                        ),
                         br(),
                         plotOutput("fig2", width = "300px")
                         #h3("Leading Species Agreement (Inventory vs. Ground)"),
@@ -169,7 +182,7 @@ ui <- dashboardPage(
                         
                         uiOutput("bias_comp"),
                         br(),
-                        plotOutput("fig3", width = "800px"),
+                        plotOutput("fig3", width = "800px", height = "300px"),
                         fluidRow(
                           column(6,
                                  uiOutput("fig3_1")),
@@ -189,16 +202,16 @@ ui <- dashboardPage(
                ),
                tabPanel(title = "Overall Species",
                         
-                        plotOutput("fig4"),
+                        plotOutput("fig4", width = "800px", height = "400px"),
                         br(),
-                        plotOutput("fig5")
+                        plotOutput("fig5", width = "800px", height = "400px")
                ),
                
                "Other Attributes",
-               tabPanel(title = "Bround vs. Inventory",
+               tabPanel(title = "Ground vs. Inventory",
                         uiOutput("scatter_text"),
                         br(),
-                        plotOutput("fig6", width = "800px"),
+                        plotOutput("fig6", width = "800px", height = "1000px"),
                         br(),
                ),
                
@@ -206,7 +219,7 @@ ui <- dashboardPage(
                tabPanel(title = "Inventory Standard Code",
                         uiOutput("stdcode_text"),
                         br(),
-                        plotOutput("fig7", width = "400px"),
+                        plotOutput("fig7", width = "600px", height = "200px"),
                         br(),
                ),
                
@@ -214,9 +227,8 @@ ui <- dashboardPage(
                tabPanel(title = "Impact of 2017, 2018, and 2021 wildfires",
                         uiOutput("fire_text"),
                         br(),
-                        plotOutput("fig8", width = "400px"),
+                        plotOutput("fig8", width = "600px"),
                         br()
-                        #plotOutput("ysm_tables"),
                ),
                
                "General Notes",

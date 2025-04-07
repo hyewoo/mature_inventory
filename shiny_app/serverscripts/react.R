@@ -19,6 +19,20 @@ clstr_id <- reactive({
 })
 
 
+correct_ls <- reactive({
+  req(input$SelectVar)
+  
+  correct_ls <- lead_vol %>%
+    filter(CLSTR_ID %in%  clstr_id()) %>%
+    group_by(Design) %>%
+    reframe(correct_ls = round(sum(SPECIES_INV == SPECIES)/n(), 3)) %>%
+    data.table
+  
+  return(correct_ls)
+  
+})
+
+
 top3spc <- reactive({
   req(input$SelectVar)
 

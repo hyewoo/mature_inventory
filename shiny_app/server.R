@@ -14,8 +14,9 @@ server <- function(input, output, session) {
   # Source files with server code for each tab -----------------------------------------
   source(file.path("serverscripts/overview.R"), local = TRUE)$value 
   source(file.path("serverscripts/stat.R"), local = TRUE)$value 
-  #source(file.path("server/lsServer.R"), local = TRUE)$value 
-  #source(file.path("server/residServer.R"), local = TRUE)$value 
+  source(file.path("serverscripts/leadingsp.R"), local = TRUE)$value 
+  source(file.path("serverscripts/fireimpact.R"), local = TRUE)$value 
+  source(file.path("serverscripts/gn.R"), local = TRUE)$value 
 
   #output$downloadReport <- downloadHandler(
   #  filename = function() {
