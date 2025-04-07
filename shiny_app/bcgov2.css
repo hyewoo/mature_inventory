@@ -44,6 +44,11 @@ header {
     font-weight: 400;  /* 400 */
   }
   
+  h4 {
+    font-family: ‘BCSans’, ‘Noto Sans’, Verdana, Arial, sans-serif;
+    font-weight: 300;  /* 400 */
+  }
+  
   header .banner {
     display: flex;
     justify-content: flex-start;

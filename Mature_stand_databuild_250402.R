@@ -87,7 +87,7 @@ VDYP_grd <- VDYP_grd %>%
   
 
 
-### Create list of YSM sample data
+### Create list of mature sample data
 sample_data1 <- faib_sample_byvisit %>% 
   left_join(faib_header, by = c("SITE_IDENTIFIER", "SAMPLE_ESTABLISHMENT_TYPE")) %>%
   mutate(BEClabel = paste0(BEC_ZONE, BEC_SBZ, 
@@ -100,6 +100,21 @@ sample_data1 <- faib_sample_byvisit %>%
   left_join(vegcomp1,
             by = c("SITE_IDENTIFIER"), suffix = c("", "_vegcomp")) %>%
   mutate(bclcs = paste0(BCLCS_LEVEL_1, BCLCS_LEVEL_2)) %>%
+  mutate(sample_change_case = case_when(
+    SAMPLE_ESTABLISHMENT_TYPE == "VRI" & VISIT_TYPE == "REP" ~ 'rep_in_vri',
+    SAMPLE_ESTABLISHMENT_TYPE == "CMI" & VISIT_TYPE == "TMP" & SAMPLE_SITE_PURPOSE_TYPE_CODE == "A" ~ 'eysm_in_cmi',
+    SAMPLE_ESTABLISHMENT_TYPE == "YSM" & VISIT_TYPE == "TMP" & SAMPLE_SITE_PURPOSE_TYPE_CODE == "A" ~ 'eysm_in_ysm',
+    SAMPLE_ESTABLISHMENT_TYPE == "SUP" & VISIT_TYPE == "REP" & SAMPLE_SITE_PURPOSE_TYPE_CODE == "A" ~ 'ysm_in_sup',
+    SAMPLE_ESTABLISHMENT_TYPE == "SUP" & VISIT_TYPE == "TMP" & SAMPLE_SITE_PURPOSE_TYPE_CODE == "Y" ~ 'eysm_in_sup',
+    SAMPLE_ESTABLISHMENT_TYPE == "CNS" & VISIT_TYPE == "TMP" & SAMPLE_SITE_PURPOSE_TYPE_CODE %in% c("D", "O") ~ 'tmp_in_cns',
+    SAMPLE_ESTABLISHMENT_TYPE == "YNS" & VISIT_TYPE == "TMP" & SAMPLE_SITE_PURPOSE_TYPE_CODE == "L" ~ 'tmp_in_yns',
+    MGMT_UNIT == "TFL60_TaanForest" & SAMPLE_ESTABLISHMENT_TYPE == "CNS" & VISIT_TYPE == "REP" ~ 'pre_post_trt',
+    # *in merritt tsa, YSM and CMI/NFI samples are on different grids, 
+    # so only one sample type can be retained.  for ysm analysis drop cmi,nfi;
+    # *for mature assessment analysis, drop ysm;
+    MGMT_UNIT == "TSA18_Merritt" & SAMPLE_ESTABLISHMENT_TYPE == "CMI" ~ 'popn_conflict',
+    YSM_MAIN_LM == "Y" & PROJ_AGE_ADJ < 15 ~ 'ysm_too_young',
+    TRUE ~"")) %>%
   # *subset population of interest;
   mutate(drop_reason = case_when(
     !(SAMPLE_ESTABLISHMENT_TYPE %in% c("CMI", "NFI", "VRI", "SUP")) ~ 'not_mature_sample_type',

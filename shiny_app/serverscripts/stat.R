@@ -67,7 +67,7 @@ table2 <- reactive({
                             "BA (m2/ha)" = "ba", "Volume (m3/ha)" = "vol"),
            inv = round(inv, 1),
            grd = round(grd, 1),
-           rom = round(rom, 1),
+           rom = round(rom, 2),
            l95rom = round(l95rom, 2),
            u95rom = round(u95rom, 2),
            inv = round(inv, 1)
@@ -129,7 +129,7 @@ table3 <- reactive({
     mutate(var = "Volume (m3/ha)",
            inv = round(inv, 1),
            grd = round(grd, 1),
-           rom = round(rom, 1),
+           rom = round(rom, 2),
            l95rom = round(l95rom, 2),
            u95rom = round(u95rom, 2),
            inv = round(inv, 1)

@@ -117,7 +117,7 @@ output$samplemap <- renderLeaflet({
 samplesize <- reactive({
   req(input$SelectVar)
   
-  grid_size <- sample_data7 %>%
+  grid_size <- sample_data %>%
     filter(CLSTR_ID %in% clstr_id(), Design == "GRID") %>%
     pull(grid_size) %>%
     unique()
@@ -158,17 +158,12 @@ output$samplesize <- renderUI({
 
 
 
-
 correct_sp_lead <- reactive({
   req(input$SelectVar)
   
-  correct_sp_lead <- lead_vol %>%
-    filter(CLSTR_ID %in%  clstr_id()) %>%
-    group_by(Design) %>%
-    reframe(correct_ls = round(sum(SPECIES_INV == SPECIES)/n(), 3)) %>%
-    data.table
+  correct_ls <- correct_ls()
   
-  corsp_flex <- flextable(correct_sp_lead)
+  corsp_flex <- flextable(correct_ls)
   
   corsp_flex <- corsp_flex %>%
     mk_par(
@@ -293,3 +288,139 @@ output$fig2 <- renderPlot({
 })
 
 
+
+test1 <- reactive({
+  lead_vol_dat <- lead_vol_dat()
+  
+  lead_vol_dat1 <- lead_vol_dat %>%
+    select(Design, starts_with("n_"),starts_with("inv_"),starts_with("grd_"),
+           starts_with("rom_"),starts_with("l95rom_"),starts_with("u95rom_"),
+           starts_with("sigrom_"),starts_with("sigrope_")) %>%
+    pivot_longer(cols = n_age:sigrope_voldead,
+                 names_to =  c(".value", "var"),
+                 names_pattern = "(.*)_(.*)") %>%
+    distinct() %>% data.table
+  
+  test1 <- lead_vol_dat1 %>%
+    filter(var != "voldead") %>%
+    select(Design, var, n, grd, inv, rom, l95rom, u95rom, sigrope) %>%
+    mutate(var = fct_recode(var, "Age (yrs)" = "age", "HT (m)" = "ht",
+                            "BA (m2/ha)" = "ba", "Volume (m3/ha)" = "vol"),
+           inv = round(inv, 1),
+           grd = round(grd, 1),
+           rom = round(rom, 2),
+           l95rom = round(l95rom, 2),
+           u95rom = round(u95rom, 2),
+           inv = round(inv, 1)
+    ) %>%
+    filter(sigrope %in% c("N", "Y")) %>%
+    select(Design, var, sigrope, rom) %>%
+    flextable() %>%
+    align(j = 3, align = "center", part = "body") %>%
+    color(i = ~ sigrope == "N", j = 3, color = 'darkgreen', part = "body")  %>%
+    color(i = ~ sigrope == "Y", j = 3, color = 'red', part = "body") %>%
+    bg(i = ~ sigrope == "N", j = 3, bg = "lightgreen", part = "body") %>%
+    bg(i = ~ sigrope == "Y", j = 3, bg = "pink1", part = "body") %>%
+    set_header_labels(
+      values = list(var = "Attr.", sigrope = "Diff?", rom = "Ratio")) %>%
+    add_header_lines(values = c("Overall Age, Ht, Volume Tests")) %>%
+    bold(part = 'header', bold = TRUE) %>%
+    autofit()
+  
+  return(test1)
+  
+})
+
+
+output$test1 <- renderUI({
+  htmltools_value(test1())
+})
+
+
+test2 <- reactive({
+  lead_vol_dat <- lead_vol_dat()
+  
+  lead_vol_dat1 <- lead_vol_dat %>%
+    select(Design, starts_with("n_"),starts_with("inv_"),starts_with("grd_"),
+           starts_with("rom_"),starts_with("l95rom_"),starts_with("u95rom_"),
+           starts_with("sigrom_"),starts_with("sigrope_")) %>%
+    pivot_longer(cols = n_age:sigrope_voldead,
+                 names_to =  c(".value", "var"),
+                 names_pattern = "(.*)_(.*)") %>%
+    distinct() %>% data.table
+  
+  test2 <- lead_vol_dat1 %>%
+    filter(var == "voldead") %>%
+    select(Design, var, n, grd, inv, rom, l95rom, u95rom, sigrope) %>%
+    mutate(var = "Volume (m3/ha)",
+           inv = round(inv, 1),
+           grd = round(grd, 1),
+           rom = round(rom, 2),
+           l95rom = round(l95rom, 2),
+           u95rom = round(u95rom, 2),
+           inv = round(inv, 1)
+    ) %>%
+    filter(sigrope %in% c("N", "Y")) %>%
+    select(Design, var, sigrope, rom) %>%
+    flextable() %>%
+    align(j = 3, align = "center", part = "body") %>%
+    color(i = ~ sigrope == "N", j = 3, color = 'darkgreen', part = "body")  %>%
+    color(i = ~ sigrope == "Y", j = 3, color = 'red', part = "body") %>%
+    bg(i = ~ sigrope == "N", j = 3, bg = "lightgreen", part = "body") %>%
+    bg(i = ~ sigrope == "Y", j = 3, bg = "pink1", part = "body") %>%
+    set_header_labels(
+      values = list(var = "Attr.", sigrope = "Diff?", rom = "Ratio")) %>%
+    add_header_lines(values = c("Dead Volume Test")) %>%
+    bold(part = 'header', bold = TRUE) %>%
+    autofit()
+  
+  return(test2)
+  
+})
+
+
+output$test2 <- renderUI({
+  htmltools_value(test2())
+})
+
+
+
+
+test3 <- reactive({
+  invspc_vol_dat <- invspc_vol_dat()
+  
+  test3 <- invspc_vol_dat %>%
+    filter(sigrope_vol %in% c("Y", "N")) %>%
+    select(Design, SPC_GRP_INV, n, grd_vol, inv_vol, 
+           rom_vol, l95rom_vol, u95rom_vol, sigrope_vol) %>%
+    mutate(var = "Volume (m3/ha)",
+           grd_vol = round(grd_vol, 1),
+           inv_vol = round(inv_vol, 1),
+           rom_vol = round(rom_vol, 2),
+           l95rom_vol = ifelse(n >= 8,  round(l95rom_vol, 2), NA),
+           u95rom_vol = ifelse(n >= 8,  round(u95rom_vol, 2), NA),
+           sigrope_vol = ifelse(n >= 8,  sigrope_vol, "-")
+    ) %>%
+    select(Design, var, SPC_GRP_INV, sigrope_vol, rom_vol) %>%
+    flextable() %>%
+    merge_v(j = ~Design) %>%
+    align(j = 4, align = "center", part = "body") %>%
+    color(i = ~ sigrope_vol == "N", j = 4, color = 'darkgreen', part = "body")  %>%
+    color(i = ~ sigrope_vol == "Y", j = 4, color = 'red', part = "body") %>%
+    bg(i = ~ sigrope_vol == "N", j = 4, bg = "lightgreen", part = "body") %>%
+    bg(i = ~ sigrope_vol == "Y", j = 4, bg = "pink1", part = "body")  %>%
+    set_header_labels(
+      values = list(var = "Attr.", SPC_GRP_INV = "Spc.", sigrope_vol = "Diff?", 
+                    rom_vol = "Ratio")) %>%
+    add_header_lines(values = c("Leading Species Live Volume Test")) %>%
+    bold(part = 'header', bold = TRUE) 
+  
+  
+  return(test3)
+  
+})
+
+
+output$test3 <- renderUI({
+  htmltools_value(test3())
+})
