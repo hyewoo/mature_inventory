@@ -29,7 +29,7 @@ ui <- dashboardPage(
   dashboardSidebar(disable = TRUE),
   
   dashboardBody(
-    
+    useShinyjs(), 
     tags$head(tags$style("body{min-height: 800px;  height: auto;  max-width: 1296px;  margin: auto;
                          background-color: #b3b1b3}")),
     
@@ -101,6 +101,19 @@ ui <- dashboardPage(
       box(title = "Select the area of interest", #background = "light-blue", 
           solidHeader = TRUE, status = "primary", width = NULL,
           
+          column(3, 
+                 list(tags$div(align = 'left', 
+                               class = 'multicol', 
+                               radioButtons("SelectCategory", "Strata",
+                                            choiceNames = c("By TSA", "By BEC", "By TFL"),
+                                            choiceValues = c("TSA_DESC", "BEC_ZONE", "TFL"),
+                                            #choices = list("By TSA" = "TSA_DESC", 
+                                            #               "By BEC" = "BEC_ZONE",
+                                            #               "By TFL" = "TFL"), 
+                                            selected = "TSA_DESC"),
+                               style = "font-size:100%", align = "center"))), 
+          
+          
           column(3, offset = 1, selectInput(inputId = "SelectVar",
                                             label = "Select",
                                             choices = c(Choose = "", tsa_list)), 
@@ -144,26 +157,22 @@ ui <- dashboardPage(
                         ),
                         
                         h4("Listing of those Attributes where Ground: Inventory ratio of means are practically different (Y) or not practically different (N) from 1.0. Attributes which are not listed here have inconclusive (I) results."),
-                                                fluidRow(
-                          column(4,
+                        fluidRow(
+                          column(6,
+                                 br(),
+                                 br(),
                                  uiOutput("test1"),
-                                 br()),
-                          column(4,
+                                 br(),
                                  uiOutput("test2"),
-                                 br()),
-                          column(4,
+                                 br(),
                                  uiOutput("test3"),
-                                 br())
+                                 br()),
+                          column(6,
+                                 plotOutput("fig2", height = "600px"),
+                                 br()),
                         ),
                         br(),
-                        plotOutput("fig2", width = "300px")
-                        #h3("Leading Species Agreement (Inventory vs. Ground)"),
-                        #leafletOutput("spcagree1"),
-                        #h3("Overall Species Agreement (Inventory vs. Ground)"),
-                        #leafletOutput("spcagree2"),
                ),
-               
-               "Descriptive Statistics",
                tabPanel(title = "Stand Summaries",
                         uiOutput("description_text"),
                         br(),
@@ -191,7 +200,7 @@ ui <- dashboardPage(
                         )
                ),
                
-               "Species Comparisons",
+               "Ground vs. Inventory",
                tabPanel(title = "Leading Species",
                         uiOutput("spcomp_text"),
                         br(),
@@ -206,16 +215,14 @@ ui <- dashboardPage(
                         br(),
                         plotOutput("fig5", width = "800px", height = "400px")
                ),
-               
-               "Other Attributes",
-               tabPanel(title = "Ground vs. Inventory",
+               tabPanel(title = "Other Attributes",
                         uiOutput("scatter_text"),
                         br(),
                         plotOutput("fig6", width = "800px", height = "1000px"),
                         br(),
                ),
                
-               "Inventory Standards of Data Collection",
+               "Standards of Data Collection",
                tabPanel(title = "Inventory Standard Code",
                         uiOutput("stdcode_text"),
                         br(),
@@ -223,11 +230,13 @@ ui <- dashboardPage(
                         br(),
                ),
                
-               "Ground Samples Impacted by Recent Wildfires",
-               tabPanel(title = "Impact of 2017, 2018, and 2021 wildfires",
+               "Wildfire Impact",
+               tabPanel(title = "Ground Samples Impacted by Recent Wildfires",
                         uiOutput("fire_text"),
                         br(),
-                        plotOutput("fig8", width = "600px"),
+                        plotOutput("fig8", width = "500px", height = "300px"),
+                        br(),
+                        leafletOutput("firemap"),
                         br()
                ),
                

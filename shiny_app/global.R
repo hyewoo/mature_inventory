@@ -18,6 +18,8 @@
 library(shiny)
 library(shinydashboard)
 library(shinycssloaders)
+library(shinyjs)
+library(shinyWidgets)
 library(data.table)
 library(ggplot2)
 #library(plotly)
@@ -52,7 +54,8 @@ spc_vol <- readRDS("data/spc_vol.rds")
 vdyp_grd <- readRDS("data/VDYP_grd.rds")
 
 # shapefiles (for map) 
-tsa_sp <- st_transform(st_read("data/tsa_sp.shp"),4326)
+tsa_sp <- st_transform(st_read("data/tsa_sp.shp"),4326) 
+fire_sp <- st_transform(st_read("data/fire_peri_lowres.shp"),4326)
 
 # Others
 decidspc <- c('A','AC','ACT','ACB','AT',

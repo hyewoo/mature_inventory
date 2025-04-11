@@ -5,8 +5,20 @@
 ##############################################
 server <- function(input, output, session) {
   
-  
-  
+  #disable(selector = "#somevalue button:eq(1)")
+  runjs("$(\"input[name='SelectCategory'][value='BEC_ZONE']\").parent().attr('disabled', true);")
+  #shinyjs::runjs("$(\"input[name='SelectCategory'][value='BEC_ZONE']\").parents('button').prop('disabled', true);")
+  #disable(selector = "#SelectCategory button:eq(1)")
+  #observeEvent(input$SelectCategory, {
+  #  shinyjs::disable("text")  # toggle is a shinyjs function
+  #})
+  #if(TRUE) {
+  #updateRadioButtons(
+  #  session = session, 
+  #  inputId = "SelectCategory",
+  #  disabledChoices = c("BEC_ZONE", "TFL")
+  #)
+  #}
   
   # Call reactive values and data
   source(file.path("serverscripts/react.R"), local = TRUE) 

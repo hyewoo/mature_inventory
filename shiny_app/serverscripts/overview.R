@@ -54,12 +54,12 @@ samplemap <- reactive({
     
     
     iconFile1 <- pchIcons(3, 20, 20, 
-                          col = "brown3", lwd = 4)
+                          col = "brown3", lwd = 3)
     iconFile2 <- pchIcons(2, 20, 20, 
-                          col = "chartreuse4", lwd = 3)
+                          col = "chartreuse4", lwd = 2)
     
-    plotIcons <- iconList(darkred = makeIcon(iconFile1, iconWidth = 20, iconHeight = 20),
-                          darkolivegreen4 = makeIcon(iconFile2, iconWidth = 15, iconHeight = 15))
+    plotIcons <- iconList(darkred = makeIcon(iconFile1, iconWidth = 15, iconHeight = 15),
+                          darkolivegreen4 = makeIcon(iconFile2, iconWidth = 10, iconHeight = 10))
     
     pal <- colorFactor(c("brown3", "chartreuse4"), factor(location$Design))
     
