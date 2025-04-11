@@ -274,13 +274,15 @@ fig3 <- reactive({
     mutate(Design = factor(Design, levels = c("GRID", "PHASE2"))) %>%
     ggplot(aes(x = comp, y = bias, group = Design)) +
     geom_bar(aes(fill = comp, group = Design), stat = 'identity',
-             position = position_dodge2(width = 0.5)) +
+             position = position_dodge2(width = 0.5), width = 0.7) +
     geom_hline(aes(yintercept = 0), col = "black") +
     geom_text(aes(label=round(bias, 1), col = comp,
                   hjust = ifelse(bias >= 0, -0.5, 1.5)), show.legend = F) +
     scale_x_discrete(limit = c("totbias", "modbias", "attrbias")) +
     scale_y_continuous(limits = c(NA, NA), expand = expansion(mult = c(0.2, 0.2))) +
-    scale_fill_discrete(name = "", labels = c("Attribute Bias", "Model Bias", "Total Bias")) +
+    scale_fill_manual(name = "", values = c("palegreen3", "lightpink1", "steelblue"),
+                      labels = c("Attribute Bias", "Model Bias", "Total Bias")) +
+    scale_color_manual(name = "", values = c("palegreen3", "lightpink1", "steelblue")) +
     facet_grid(Design~var, scales = "free", switch = "y", #strip.position="left",
                labeller = as_labeller(c(
                  'ba'="Basal Area (m2/ha)",

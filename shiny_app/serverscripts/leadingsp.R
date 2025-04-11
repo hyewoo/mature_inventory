@@ -203,30 +203,33 @@ fig6 <- reactive({
   top3spc <- top3spc()
   
   scatter <- lead_vol_dat %>%
-    left_join(lead_vol %>% select(CLSTR_ID, SPECIES_INV), by = "CLSTR_ID") %>%
-    select(Design, CLSTR_ID, SPECIES_INV, 
+    left_join(lead_vol %>% select(CLSTR_ID, SPECIES_INV, SPC_GRP2), by = "CLSTR_ID") %>%
+    left_join(top3spc %>% select(-n), by = c('Design', 'SPC_GRP2')) %>%
+    mutate(SPC_GRP_INV = ifelse(!is.na(top3) & top3 == "Y", SPC_GRP2, "OTH")) %>%
+    select(Design, CLSTR_ID, SPECIES_INV, SPC_GRP2, SPC_GRP_INV,
            inv_age = PROJ_AGE_ADJ, inv_ht = vdyp_dom_ht, inv_vol = vdyp_vol_dwb, 
            grd_age = AGET_TLSO, grd_ht = HT_TLSO, grd_vol = NTWB_NVAF_LS,
            rom_age, rom_ht, rom_vol) %>%
-    mutate(SPC_GRP_INV = ifelse(SPECIES_INV %in% top3spc, SPECIES_INV, "OTH")) %>%
+    #mutate(SPC_GRP_INV = ifelse(SPECIES_INV %in% top3spc, SPECIES_INV, "OTH")) %>%
     pivot_longer(cols = inv_age:rom_vol,
                  names_to =  c(".value", "var"),
                  names_pattern = "(.*)_(.*)") %>%
     distinct() %>% data.table
   
+  npal <- length(unique(scatter$SPC_GRP_INV))
   
   fig6 <- ggplot(scatter) +
     geom_point(aes(x = inv, y = grd, col = SPC_GRP_INV), size = 2) +
     geom_abline(aes(intercept = 0, slope = 1, linetype = "1:1"), color = "darkgray") + 
     geom_abline(aes(intercept = 0, slope = rom, linetype = "ROM"), linewidth = 1,  color = "red") +
     geom_text(aes(Inf, -Inf, label = paste0("ROM = ",round(rom, 2))), hjust = 1.2, 
-              vjust = -1) +
+              vjust = -1, size = 5) +
     scale_x_continuous(limits = c(0, NA), expand = expansion(mult = c(0, 0.1))) +
     scale_y_continuous(limits = c(0, NA), expand = expansion(mult = c(0, 0.1))) +
     scale_linetype_manual(name = NULL, 
                           values = c(2, 1),
                           guide = guide_legend(override.aes = list(color = c("darkgray", "red")))) +
-    scale_color_manual(name = "SPECIES", values = (hcl.colors(4, palette = "Dark 3"))) +
+    scale_color_manual(name = "SPECIES", values = (hcl.colors(npal, palette = "Dark 3"))) +
     labs(x = "Inventory", y = "Ground") +
     facet_wrap(var ~  Design , scales = "free", ncol = 2,
                labeller = as_labeller(c(

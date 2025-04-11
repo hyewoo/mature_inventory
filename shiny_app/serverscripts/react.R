@@ -24,6 +24,8 @@ correct_ls <- reactive({
   
   correct_ls <- lead_vol %>%
     filter(CLSTR_ID %in%  clstr_id()) %>%
+    mutate(SPECIES = ifelse(is.na(SPECIES), "", SPECIES),
+           SPECIES_INV = ifelse(is.na(SPECIES_INV), "", SPECIES_INV)) %>%
     group_by(Design) %>%
     reframe(correct_ls = round(sum(SPECIES_INV == SPECIES)/n(), 3)) %>%
     data.table
@@ -38,11 +40,20 @@ top3spc <- reactive({
 
 top3spc <- lead_vol %>%  
   filter(CLSTR_ID %in% clstr_id()) %>%
-  group_by(SPC_GRP2) %>%
+  filter(!is.na(SPC_GRP2)) %>%  
+  group_by(Design, SPC_GRP2) %>%
   count() %>% 
-  ungroup() %>% 
+  group_by(Design) %>%
   top_n(3) %>%
-  pull(SPC_GRP2)
+  arrange(Design, desc(n), desc(SPC_GRP2)) %>%
+  slice_head(n = 3) %>%
+  mutate(top3 = "Y") %>%
+  data.table
+  #group_by(SPC_GRP2) %>%
+  #count() %>% 
+  #ungroup() %>% 
+  #top_n(3) %>%
+  #pull(SPC_GRP2)
 
 return(top3spc)
 
@@ -196,12 +207,29 @@ invspc_vol_dat <- reactive({
   
   top3spc <- top3spc()
   
+  top3_grid <- top3spc[Design == "GRID",]$SPC_GRP2
+  top3_phase2 <- top3spc[Design == "PHASE2",]$SPC_GRP2
+  
+  #invspc_vol <- lead_vol %>%
+  #  filter(CLSTR_ID %in%  clstr_id()) %>% 
+  #  rowwise() %>%
+  #  mutate(SPC_GRP_GRD = ifelse(SPC_GRP1 %in% top3spc, SPC_GRP1, "OTH"),
+  #         SPC_GRP_INV = ifelse(SPC_GRP2 %in% top3spc, SPC_GRP2, "OTH")) %>%
+  #  select(SITE_IDENTIFIER, CLSTR_ID, Design, SPC_GRP1, SPC_GRP_GRD, SPC_GRP2, 
+  #         SPC_GRP_INV, NTWB_NVAF_LS, vdyp_vol_dwb)
+  
   invspc_vol <- lead_vol %>%
     filter(CLSTR_ID %in%  clstr_id()) %>% 
-    rowwise() %>%
-    mutate(SPC_GRP_GRD = ifelse(SPC_GRP1 %in% top3spc, SPC_GRP1, "OTH"),
-           SPC_GRP_INV = ifelse(SPC_GRP2 %in% top3spc, SPC_GRP2, "OTH")) %>%
-    select(SITE_IDENTIFIER, CLSTR_ID, Design, SPC_GRP1, SPC_GRP_GRD, SPC_GRP2, 
+    left_join(top3spc %>% select(-n), by = c('Design', 'SPC_GRP2')) %>%
+    mutate(SPC_GRP_INV = ifelse(!is.na(top3) & top3 == "Y", SPC_GRP2, "OTH")) %>%
+    replace_na(list(NTWB_NVAF_LS = 0, vdyp_vol_dwb = 0)) %>%
+    #rowwise() %>%
+    #mutate(SPC_GRP_INV = case_when(Design == "GRID" & SPC_GRP2 %in% top3_grid ~ SPC_GRP2,
+    #                               Design == "GRID" & !(SPC_GRP2 %in% top3_grid) ~ "OTH",
+    #                               Design == "PHASE2" & SPC_GRP2 %in% top3_phase2 ~ SPC_GRP2,
+    #                               Design == "PHASE2" & !(SPC_GRP2 %in% top3_phase2) ~ "OTH",
+    #                               TRUE ~ NA)) %>%
+    select(SITE_IDENTIFIER, CLSTR_ID, Design, SPC_GRP1, SPC_GRP2, 
            SPC_GRP_INV, NTWB_NVAF_LS, vdyp_vol_dwb)
   
   invspc_vol1 <- invspc_vol %>%

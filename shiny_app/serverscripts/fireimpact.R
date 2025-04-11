@@ -64,7 +64,7 @@ fig8 <- reactive({
     
   } else {
     ggplot() + 
-      theme_void() +
+      theme_void(15) +
       geom_text(aes(0,0,label='No sample impacted by fire')) +
       xlab(NULL)
   }
@@ -79,3 +79,120 @@ output$fig8 <- renderPlot({
   fig8()
   
 })
+
+
+
+firemap <- reactive({
+  
+  firesample <- firesample()
+  
+  firemap <- if(nrow(firesample) > 0){
+    
+  location <- sample_data %>% 
+    filter(CLSTR_ID %in% clstr_id()) %>% 
+    group_by(SITE_IDENTIFIER) %>% 
+    mutate(#design = ifelse(SAMPLE_ESTABLISHMENT_TYPE %in% c("CMI", "NFI", "SUP"), "GRID", "PHASE2"), 
+      #design_icon = ifelse(design == "GRID", 1, 2),
+      visit_num = length(VISIT_NUMBER),
+      visit_year = paste0(MEAS_YR, collapse  = ',')) %>%
+    select(SITE_IDENTIFIER, SAMPLE_ESTABLISHMENT_TYPE, visit_num, visit_year, BECsub,
+           MGMT_UNIT, TSA_DESC, BEC_ZONE, BEC_SBZ, BEC_VAR, GRID_SIZE, Design, design_icon,
+           BC_ALBERS_X, BC_ALBERS_Y, Latitude, Longitude, fire_year, ntwb_mortality) %>% 
+    distinct()
+  
+  location <- st_as_sf(x = location,                         
+                       coords = c("Longitude", "Latitude"),
+                       crs = 4326)
+  
+  location_fire <- location %>%
+    filter(!is.na(fire_year))
+  
+  aoimap <- tsa_sp %>%
+    filter(TSA_NUMBER %in% substr(unique(sample_data[sample_data$SITE_IDENTIFIER %in% location$SITE_IDENTIFIER,]$MGMT_UNIT), 4, 5))
+  
+  firemap <- st_filter(fire_sp, aoimap)
+  
+  lng1 = as.numeric(st_bbox(aoimap)[1])
+  lat1 = as.numeric(st_bbox(aoimap)[2])
+  lng2 = as.numeric(st_bbox(aoimap)[3])
+  lat2 = as.numeric(st_bbox(aoimap)[4])
+  
+  iconFile1 <- pchIcons(3, 20, 20, 
+                        col = "brown3", lwd = 3)
+  iconFile2 <- pchIcons(2, 20, 20, 
+                        col = "chartreuse4", lwd = 3)
+  
+  plotIcons <- iconList(darkred = makeIcon(iconFile1, iconWidth = 15, iconHeight = 15),
+                        darkolivegreen4 = makeIcon(iconFile2, iconWidth = 10, iconHeight = 10))
+  
+  pal <- colorFactor(c("brown3", "chartreuse4"), factor(location$Design))
+  
+  
+  firemap <- leaflet() %>% 
+    addTiles() %>% 
+    addProviderTiles("Esri.WorldImagery", group = "Satellite view") %>%
+    addProviderTiles("Esri.WorldTerrain", group = "Terrain only") %>%
+    addProviderTiles("Esri.WorldTopoMap", group = "Base map") %>%
+    setMaxBounds(lng1 = -142,
+                 lat1 = 46, 
+                 lng2 = -112,
+                 lat2 =  62) %>%
+    fitBounds(lng1 = lng1, lat1 = lat1, lng2 = lng2, lat2 = lat2) %>%
+    addLayersControl(
+      baseGroups = c("Base map", "Terrain only", "Satellite view"),
+      options = layersControlOptions(collapsed = FALSE),
+    ) %>%
+    addPolygons(data = aoimap, stroke = TRUE, color = "#3c8dbc", weight = 2,
+                opacity = 0.9, fill = TRUE, fillOpacity = 0.2) %>%
+    addPolygons(data = firemap, stroke = TRUE, color = "#FF7F00", weight = 2,
+                opacity = 0.9, fill = TRUE, fillOpacity = 0.2,
+                popup = paste(sep = "<br/>",
+                              paste(paste("<b>Fire number</b> - ", firemap$FIRE_NO, "<br/>"),
+                                    paste("<b>Fire year</b> - ", firemap$FIRE_YEAR, "<br/>"),
+                                    paste("<b>Fire size</b> - ", firemap$SIZE_HA, " ha<br/>"),
+                                    paste("<b>Fire cause</b> - ", firemap$FIRE_CAUSE, "<br/>")))) %>%
+    addMarkers(data = location,
+               icon =  ~plotIcons[design_icon],
+               popup = paste(sep = "<br/>",
+                             paste(paste("<b>Management unit</b> - ", location$MGMT_UNIT, "<br/>"),
+                                   paste("<b>Sample ID</b> - ", location$SITE_IDENTIFIER, "<br/>"),
+                                   paste("<b>Sample type</b> - ", location$SAMPLE_ESTABLISHMENT_TYPE, "<br/>"),
+                                   paste("<b>BEC zone</b> - ", location$BEC_ZONE, "<br/>"), 
+                                   paste("<b>BEC subzone</b> - ", location$BEC_SBZ, "<br/>"),
+                                   paste("<b>BEC variant</b> - ", location$BEC_VAR, "<br/>"), 
+                                   paste("<b># of measures</b> - ", location$visit_num, "<br/>"),
+                                   paste("<b>Visited year</b> - ",location$visit_year, "<br/>")))) %>%
+    addMarkers(data = location_fire,
+               popup = paste(sep = "<br/>",
+                             paste(paste("<b>Management unit</b> - ", location_fire$MGMT_UNIT, "<br/>"),
+                                   paste("<b>Sample ID</b> - ", location_fire$SITE_IDENTIFIER, "<br/>"),
+                                   paste("<b>Sample type</b> - ", location_fire$SAMPLE_ESTABLISHMENT_TYPE, "<br/>"),
+                                   paste("<b>BEC zone</b> - ", location_fire$BEC_ZONE, "<br/>"), 
+                                   paste("<b>BEC subzone</b> - ", location_fire$BEC_SBZ, "<br/>"),
+                                   paste("<b>BEC variant</b> - ", location_fire$BEC_VAR, "<br/>"), 
+                                   paste("<b># of measures</b> - ", location_fire$visit_num, "<br/>"),
+                                   paste("<b>Visited year</b> - ",location_fire$visit_year, "<br/>"),
+                                   paste("<b>Fire year</b> - ", location_fire$fire_year, "<br/>"),
+                                   paste("<b>Volume mortality</b> - ",location_fire$ntwb_mortality, "<br/>")))) %>%
+    addLegend(data = firemap,
+              position = "bottomright",
+              colors = "#FF7F00", 
+              labels = "Fire perimeter",
+              #pal = pal, values = ~Design,
+              #pch = ,
+              title = NULL,
+              opacity = 0.5)
+  } else {
+    ggplot() + 
+      theme_void() +
+      xlab(NULL)
+  }
+  
+  return(firemap)
+})
+
+
+output$firemap <- renderLeaflet({
+  firemap()
+})
+

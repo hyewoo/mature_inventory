@@ -59,7 +59,8 @@ output$disclaimer <- renderUI({
 
 
 ref <- reactive({
-  ref <-paste0("<p>https://www2.gov.bc.ca/assets/gov/farming-natural-resources-and-industry/forestry/stewardship/forest-analysis-inventory/ground-sample-inventories/vri-audits/planning-reports/tsa-vri-ground-sampling/arrowtsa_vrigs_vpip.pdf</p>")
+  ref <-paste0("<p><a href='https://www2.gov.bc.ca/assets/gov/farming-natural-resources-and-industry/forestry/stewardship/forest-analysis-inventory/ground-sample-inventories/vri-audits/planning-reports/tsa-vri-ground-sampling/arrowtsa_vrigs_vpip.pdf'>
+               https://www2.gov.bc.ca/assets/gov/farming-natural-resources-and-industry/forestry/stewardship/forest-analysis-inventory/ground-sample-inventories/vri-audits/planning-reports/tsa-vri-ground-sampling/arrowtsa_vrigs_vpip.pdf</a></p>")
   return(ref)
 })
 
