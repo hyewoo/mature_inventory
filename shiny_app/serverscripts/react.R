@@ -11,12 +11,66 @@ clstr_id <- reactive({
   req(input$SelectVar)
   
   clstr_id <- sample_data %>% 
-    filter(TSA_DESC %in% input$SelectVar) %>%
+    filter(TSA_DESC %in% input$SelectVar, LAST_MSMT_new == "Y") %>%
     pull(CLSTR_ID)
   
   return(clstr_id)
   
 })
+
+
+
+clstr_id_all <- reactive({
+  
+  req(input$SelectVar)
+  
+  clstr_id_all <- sample_data %>% 
+    filter(TSA_DESC %in% input$SelectVar) %>%
+    pull(CLSTR_ID)
+  
+  return(clstr_id_all)
+  
+})
+
+
+
+tsa30_ci <- reactive({
+  
+  req(input$SelectVar)
+  
+  if (input$SelectVar == "Fraser TSA"){
+    
+    tsa30_ci <- sample_data %>%
+      filter(MGMT_UNIT == "TSA30_Fraser", Design == "PHASE2") %>%
+      pull(CLSTR_ID)
+    
+  } else NULL
+  
+  return(tsa30_ci)
+  
+})
+
+sample_tsa30 <- reactive({
+  req(input$SelectVar)
+  
+  # *separate computation of rom for TSA30 phase2 samples;
+  # *samples selected in two subpopulations (in IFPA, out IFPA);
+  # *first analyze overall;
+  sample_tsa30 <- sample_data %>%
+    filter(CLSTR_ID %in% tsa30_ci()) %>%
+    mutate(proj_id = sub("_.*", "", SAMPLE_SITE_NAME),
+           stratum = ifelse(proj_id == '0301', 'IFPA-OUT', 'IFPA-IN'),
+           strat_area = ifelse(proj_id == '0301', 750000, 100000),
+           strat_n = ifelse(proj_id == '0301', 87, 50),
+           t_area_vt = 750000 + 100000,
+           weight =  strat_area/(strat_n*t_area_vt)) %>%
+    select(CLSTR_ID, Design, 
+           stratum, strat_area, strat_n, t_area_vt, weight)
+  
+  return(sample_tsa30)
+  
+})
+
 
 
 correct_ls <- reactive({
@@ -202,6 +256,117 @@ lead_vol_dat <- reactive({
 })
 
 
+lead_vol_tsa30 <- reactive({
+  req(input$SelectVar)
+  
+  #lead_vol_dat <- lead_vol_dat()
+  
+  if (input$SelectVar == "Fraser TSA"){
+    sample_tsa30 <- sample_tsa30()
+    
+    tsa30_leadvol <- lead_vol %>%
+      filter(CLSTR_ID %in% tsa30_ci()) %>%
+      left_join(sample_tsa30, by = c('CLSTR_ID', 'Design')) %>%
+      select(CLSTR_ID, Design, 
+             stratum, strat_area, strat_n, t_area_vt, weight,
+             grd_vol = NTWB_NVAF_LS, inv_vol = vdyp_vol_dwb, 
+             grd_ba = BA_HA_LS, inv_ba = vdyp_ba, 
+             grd_age = AGET_TLSO, inv_age = PROJ_AGE_ADJ, 
+             grd_ht = HT_TLSO, inv_ht = vdyp_dom_ht, 
+             grd_voldead = NTWB_NVAF_DS, inv_voldead = DEAD_STAND_VOLUME_175) 
+    
+    tsa30_leadvol_dat <- tsa30_leadvol %>%
+      pivot_longer(cols = grd_vol:inv_voldead,
+                   names_to = c("source", "variable"),
+                   names_pattern = "(.*)_(.*)") %>%
+      pivot_wider(names_from = source,
+                  values_from = value) %>%
+      replace_na(list(inv = 0)) %>%
+      data.table
+    
+    
+    stat_ratio_all <- data.frame()
+    stat_xy_all <- data.frame()
+    
+    for (i in unique(tsa30_leadvol_dat$variable)){
+      dat <- tsa30_leadvol_dat[variable == i,]
+      dat <- dat[!is.na(grd),]
+      
+      svy_base <- svydesign(
+        data = dat,
+        strata = ~stratum,
+        ids = ~CLSTR_ID,  
+        weights = ~weight
+      )
+      
+      set.seed(123)
+      svy_design <- as.svrepdesign(
+        design = svy_base,
+        type = "bootstrap",
+        replicates = 1000
+      )
+      
+      stat_ratio <- tryCatch({
+        ratio_est <- svyratio(~grd, ~inv, design = svy_design)
+        confint_est <- confint(ratio_est)
+        
+        data.frame(
+          variable = i,
+          ratio = coef(ratio_est)[1],
+          lower = confint_est[1],
+          upper = confint_est[2],
+          se = c(sqrt(ratio_est$var)),
+          n = nrow(dat)
+        )
+      })
+      
+      stat_xy <- tryCatch({
+        est <- svytotal(~grd + inv, design = svy_design)
+        conf <- confint(est)
+        
+        data.frame(
+          variable = i,
+          ground_sum = coef(est)["grd"],
+          ground_lcl = conf["grd", 1],
+          ground_ucl = conf["grd", 2],
+          pred_sum = coef(est)["inv"],
+          pred_lcl = conf["inv", 1],
+          pred_ucl = conf["inv", 2],
+          n = nrow(dat)
+        )
+      })
+      
+      stat_ratio_all <- rbind(stat_ratio_all, stat_ratio)
+      stat_xy_all <- rbind(stat_xy_all, stat_xy)
+    }
+    
+    
+    tsa30_leadvol_dat1 <- merge(stat_ratio_all, stat_xy_all, by = c('variable', 'n'))
+    
+    tsa30_leadvol_dat2 <- tsa30_leadvol_dat1 %>%
+      select(var = variable, n, grd = ground_sum, inv = pred_sum, 
+             rom = ratio, se) %>%
+      mutate(Design = "PHASE2",
+             l95rom = ifelse(n >=2, rom - qt(0.975,n-1) * se, NA),
+             u95rom = ifelse(n >=2, rom + qt(0.975,n-1) * se, NA),
+             sigrom = ifelse(!is.na(l95rom) & l95rom < 1.0 & !is.na(u95rom) & u95rom > 1.0,
+                             "N", "Y"),
+             sigrope = case_when((!is.na(l95rom) & l95rom > upr_limit) | (!is.na(u95rom) & u95rom < lwr_limit) ~ "Y",
+                                 (!is.na(l95rom) & l95rom > lwr_limit) & (!is.na(u95rom) & u95rom < upr_limit) ~ "N",
+                                 (!is.na(l95rom) & l95rom < upr_limit) & (!is.na(u95rom) & u95rom > upr_limit) ~ "I",
+                                 (!is.na(l95rom) & l95rom < lwr_limit) & (!is.na(u95rom) & u95rom > lwr_limit) ~ "I",
+                                 (!is.na(l95rom) & l95rom < lwr_limit) & (!is.na(u95rom) & u95rom > upr_limit) ~ "I"
+             )) %>%
+      select(Design, var, n, inv, grd, rom, l95rom, u95rom, sigrom, sigrope)
+    
+    
+  }
+  
+  return(tsa30_leadvol_dat2)
+  
+})
+
+
 invspc_vol_dat <- reactive({
   req(input$SelectVar)
   
@@ -294,6 +459,115 @@ spc_vol_dat <- reactive({
               deadvol = sum(DEAD_VOL_PER_HA, na.rm = T))
   
   return(spc_vol_dat)
+  
+})
+
+
+
+invspc_vol_tsa30 <- reactive({
+  req(input$SelectVar)
+  
+  if (input$SelectVar == "Fraser TSA"){
+    
+    top3spc <- top3spc()
+    top3_phase2 <- top3spc[Design == "PHASE2",]$SPC_GRP2
+    
+    sample_tsa30 <- sample_tsa30()
+    
+    tsa30_spcvol <- lead_vol %>%
+      filter(CLSTR_ID %in%  tsa30_ci()) %>% 
+      left_join(top3spc %>% select(-n), by = c('Design', 'SPC_GRP2')) %>%
+      mutate(SPC_GRP_INV = ifelse(!is.na(top3) & top3 == "Y", SPC_GRP2, "OTH")) %>%
+      replace_na(list(#NTWB_NVAF_LS = 0, 
+                      vdyp_vol_dwb = 0)) %>%
+      select(SITE_IDENTIFIER, CLSTR_ID, Design, SPC_GRP1, SPC_GRP2, 
+             SPC_GRP_INV, NTWB_NVAF_LS, vdyp_vol_dwb) %>%
+      left_join(sample_tsa30, by = c('CLSTR_ID', 'Design')) %>%
+      select(SITE_IDENTIFIER, CLSTR_ID, Design, SPC_GRP1, SPC_GRP2, SPC_GRP_INV, 
+             stratum, strat_area, strat_n, t_area_vt, weight,
+             grd_vol = NTWB_NVAF_LS, inv_vol = vdyp_vol_dwb) %>%
+      data.table
+    
+    
+    stat_ratio_spc <- data.frame()
+    stat_xy_spc <- data.frame()
+    
+    for (i in unique(tsa30_spcvol$SPC_GRP_INV)){
+      dat <- tsa30_spcvol[SPC_GRP_INV == i,]
+      dat <- dat[!is.na(grd_vol),]
+      
+      svy_base <- svydesign(
+        data = dat,
+        strata = ~stratum,
+        ids = ~CLSTR_ID,  
+        weights = ~weight
+      )
+      
+      set.seed(123)
+      svy_design <- as.svrepdesign(
+        design = svy_base,
+        type = "bootstrap",
+        replicates = 1000
+      )
+      
+      stat_ratio <- tryCatch({
+        ratio_est <- svyratio(~grd_vol, ~inv_vol, design = svy_design)
+        confint_est <- confint(ratio_est)
+        
+        data.frame(
+          variable = i,
+          ratio = coef(ratio_est)[1],
+          lower = confint_est[1],
+          upper = confint_est[2],
+          se = c(sqrt(ratio_est$var)),
+          n = nrow(dat)
+        )
+      })
+      
+      stat_xy <- tryCatch({
+        est <- svytotal(~grd_vol + inv_vol, design = svy_design)
+        conf <- confint(est)
+        
+        data.frame(
+          variable = i,
+          ground_sum = coef(est)["grd_vol"],
+          ground_lcl = conf["grd_vol", 1],
+          ground_ucl = conf["grd_vol", 2],
+          pred_sum = coef(est)["inv_vol"],
+          pred_lcl = conf["inv_vol", 1],
+          pred_ucl = conf["inv_vol", 2],
+          n = nrow(dat)
+        )
+      })
+      
+      stat_ratio_spc <- rbind(stat_ratio_spc, stat_ratio)
+      stat_xy_spc <- rbind(stat_xy_spc, stat_xy)
+    }
+    
+    
+    tsa30_spcvol_dat1 <- merge(stat_ratio_spc, stat_xy_spc, by = c('variable', 'n'))
+    
+    tsa30_spcvol_dat2 <- tsa30_spcvol_dat1 %>%
+      select(var = variable, n, grd = ground_sum, inv = pred_sum, 
+             rom = ratio, se) %>%
+      mutate(Design = "PHASE2",
+             l95rom = ifelse(n >=2, rom - qt(0.975,n-1) * se, NA),
+             u95rom = ifelse(n >=2, rom + qt(0.975,n-1) * se, NA),
+             sigrom = ifelse(!is.na(l95rom) & l95rom < 1.0 & !is.na(u95rom) & u95rom > 1.0,
+                             "N", "Y"),
+             sigrope = case_when((!is.na(l95rom) & l95rom > upr_limit) | (!is.na(u95rom) & u95rom < lwr_limit) ~ "Y",
+                                 (!is.na(l95rom) & l95rom > lwr_limit) & (!is.na(u95rom) & u95rom < upr_limit) ~ "N",
+                                 (!is.na(l95rom) & l95rom < upr_limit) & (!is.na(u95rom) & u95rom > upr_limit) ~ "I",
+                                 (!is.na(l95rom) & l95rom < lwr_limit) & (!is.na(u95rom) & u95rom > lwr_limit) ~ "I",
+                                 (!is.na(l95rom) & l95rom < lwr_limit) & (!is.na(u95rom) & u95rom > upr_limit) ~ "I"
+             )) %>%
+      select(Design, SPC_GRP_INV = var, grd_vol = grd, inv_vol = inv, rom_vol = rom,
+             n, l95rom_vol = l95rom, u95rom_vol = u95rom, sigrom_vol = sigrom, sigrope_vol = sigrope)
+    
+    
+  }
+  
+  return(tsa30_spcvol_dat2)
   
 })
 
@@ -436,6 +710,170 @@ bias_source <- reactive({
                  values_to = "bias")
   
   return(VDYP_grd4)
+  
+})
+
+
+
+clstr_id_grid <- reactive({
+  
+  req(input$SelectVar)
+  
+  clstr_id_grid <- sample_data %>% 
+    filter(TSA_DESC %in% input$SelectVar, Design == "GRID", LAST_MSMT_new == "Y") %>%
+    pull(CLSTR_ID)
+  
+  return(clstr_id_grid)
+  
+})
+
+
+clstr_id_last2 <- reactive({
+  
+  req(input$SelectVar)
+  
+  clstr_id_last2 <- sample_data %>% 
+    filter(TSA_DESC %in% input$SelectVar, Design == "GRID") %>%
+    group_by(SITE_IDENTIFIER) %>%
+    filter(n() > 1) %>% 
+    arrange(VISIT_NUMBER) %>% 
+    slice_tail(n = 2) %>%
+    pull(CLSTR_ID)
+  
+  return(clstr_id_last2)
+  
+})
+
+
+
+remeas_plot <- reactive({
+  
+  req(input$SelectVar)
+  
+  remeas_plot <- sample_data %>% 
+    filter(CLSTR_ID %in% clstr_id_last2()) %>%
+    group_by(SITE_IDENTIFIER) %>%
+    arrange(VISIT_NUMBER) %>%
+    mutate(meas_no = row_number()) %>%
+    filter(meas_no == max(meas_no), meas_no != 1) %>%
+    ungroup() %>%
+    pull(CLSTR_ID)
+  
+  return(remeas_plot)
+  
+})
+
+
+
+
+fig10_dat <- reactive({
+  
+  fig8_dat <- tree_fh_data %>%
+    filter(CLSTR_ID %in% clstr_id_last2(), DAM_NUM==1) 
+  
+  # *prep file to compare incidence over time for subset of remeasured samples;
+  # *get last two measurements for analysis;
+  FH_dat_coc <- fig8_dat %>%
+    # *only interested in remeasured samples, and only the last two measurements to compare change;
+    filter(CLSTR_ID %in% clstr_id_last2()) %>%
+    mutate(n_si = n_distinct(substr(clstr_id_last2(), 1, 7))) %>%
+    group_by(SITE_IDENTIFIER) %>%
+    # *rename first_last FP to P for reporting purposes, as this change analysis is based on the last two visits;
+    mutate(new_visit_number = ifelse(VISIT_NUMBER == min(VISIT_NUMBER), 'First', 'Last')) %>%
+    ungroup()
+  
+  # *when previous visit is also the first visit, no components of change.  
+  # *to make damage agent change comparison between the last two visits;
+  # *need to fill in components of change for first visit to "E" as a default (establishment);
+  FH_dat_coc <- FH_dat_coc %>%
+    rowwise() %>%
+    mutate(#COMP_CHG_new = COMP_CHG,
+      COMP_CHG_new = comp_chg_coc,
+      COMP_CHG_new = ifelse(new_visit_number == 'First' & lvd_coc == "D", "D", COMP_CHG_new),
+      COMP_CHG_new = ifelse(new_visit_number == 'First' & lvd_coc == "L", "E", COMP_CHG_new)) %>%
+    data.table
+  
+  FH_dat_coc1 <- FH_dat_coc %>%
+    #mutate(n = n_distinct(SITE_IDENTIFIER)) %>%
+    filter(!is.na(BA_TREE), !is.na(phf_coc)) %>%
+    ungroup()
+  
+  # *compute incidence by visit and by live dead, then merge and average all samples per mu;
+  # *compute totals for common denominator between measurements;
+  FH_dat_coc2 <- FH_dat_coc1 %>%
+    filter(DAM_NUM == 1)  %>%
+    group_by(n_si, SITE_IDENTIFIER, new_visit_number, COMP_CHG_new) %>%
+    summarize(tot_ba_comp = sum(phf_coc*BA_TREE, na.rm = T),
+              tot_stems_comp = sum(phf_coc, na.rm = T),
+              n_tree = n())  %>%
+    ungroup() %>%
+    data.table()
+  
+  # *need to fill in missing records of each forest health pest by sample id , with zeros;
+  if (nrow(FH_dat_coc2) > 1){
+    FH_dat_coc2_1 <- FH_dat_coc2 %>%
+      dcast(n_si + SITE_IDENTIFIER + new_visit_number ~ COMP_CHG_new,
+            value.var = "tot_stems_comp", drop=FALSE, fill=0, sep = "_") %>%
+      mutate(totsph_comdem = E + M + S)
+  } else {
+    FH_dat_coc2_1 <- data.frame()
+  }
+  
+  # *recompute incidence based on common demoninator between measurements;
+  # *summarize totals by damage agent for each coc;
+  FH_dat_coc3 <- FH_dat_coc1 %>%
+    filter(DAM_NUM == 1)  %>%
+    group_by(n_si, SITE_IDENTIFIER, new_visit_number, AGN, COMP_CHG_new) %>%
+    summarize(tot_ba_dam_comp = sum(phf_coc*BA_TREE, na.rm = T),
+              tot_stems_dam_comp = sum(phf_coc, na.rm = T),
+              n_tree = n())  %>%
+    ungroup() %>%
+    data.table()
+  
+  # *sum the totals so to compare live standing at first measure, to those same trees at second measure, wheher still alive;
+  # *of if they died during that period;
+  if (nrow(FH_dat_coc3) > 1){
+    FH_dat_coc3_1 <- FH_dat_coc3 %>%
+      # *creates full join of all fh damage agents per sample;
+      dcast(n_si + SITE_IDENTIFIER + new_visit_number + AGN ~ COMP_CHG_new,
+            value.var = "tot_stems_dam_comp", drop=FALSE, fill=0, sep = "_") %>%
+      mutate(damsph_comdem = E + M + S)
+    
+    FH_dat_coc4 <- FH_dat_coc3_1 %>%
+      left_join(FH_dat_coc2_1, 
+                by = c("n_si", "SITE_IDENTIFIER", "new_visit_number"),
+                suffix = c(".dam", ".comp"))
+    
+    FH_dat_coc5 <- FH_dat_coc4 %>%
+      ungroup() %>%
+      group_by(n_si, new_visit_number, AGN) %>%
+      reframe(across(where(is.double), sum)) %>%
+      ungroup() %>%
+      mutate(across(where(is.double), function(x) x/n_si))
+    
+    FH_dat_coc5 <- FH_dat_coc5 %>%
+      ungroup() %>%
+      mutate(incid_stems = damsph_comdem/totsph_comdem,
+             perc_mort = M.dam/damsph_comdem,
+             prob_get_and_die = incid_stems*perc_mort)
+    
+    fig10_dat_final <- FH_dat_coc5 %>%
+      mutate(dam_1letter = toupper(substr(AGN, 1, 1)),
+             dam_class = case_when(dam_1letter %in% c('O', '') ~ 'None',
+                                   dam_1letter == 'U' ~ 'Unknown',
+                                   dam_1letter == 'N' ~ 'Abiotic',
+                                   dam_1letter == 'D' ~ 'Disease',
+                                   dam_1letter == 'I' ~ 'Insect',
+                                   dam_1letter == 'T' ~ 'Trt',
+                                   dam_1letter == 'A' ~ 'Animal',
+                                   dam_1letter == 'X' ~ 'Frk_Crk_Btp',
+                                   TRUE ~ '')) %>%
+      mutate(dam_class = fct_reorder(dam_class, -incid_stems)) 
+  } else {
+    fig10_dat_final <- data.frame()
+  }
+  
+  return(fig10_dat_final)
   
 })
 

@@ -43,6 +43,7 @@ library(pandoc)
 library(pagedown)
 library(htmltools)
 library(webshot)
+library(survey)
 
 
 # 2. required datafiles ------------------------------------------------------------
@@ -52,6 +53,7 @@ sample_data <- readRDS("data/sample_data.rds")
 lead_vol <- readRDS("data/lead_vol.rds")
 spc_vol <- readRDS("data/spc_vol.rds")
 vdyp_grd <- readRDS("data/VDYP_grd.rds")
+tree_fh_data <- readRDS("data/Tree_FH_data.rds")
 
 # shapefiles (for map) 
 tsa_sp <- st_transform(st_read("data/tsa_sp.shp"),4326) 
@@ -80,6 +82,21 @@ tsa_list <- sort(unique(sample_data %>%
 theme_set(theme_bw(15, base_family = 'Arial'))
 
 # colour palettes for plots
+dam_color <- c("Unknown" = "#66C2A5",
+               "Abiotic" = "#FC8D62",
+               "Animal" = "#8DA0CB",
+               "Disease" = "#E78AC3",
+               "Insect" = "#A6D854",
+               "Treatment" = "#FFD92F",
+               "Vegetation" = "#E5C494")
+
+
+dam_col <- c("Unknown", "Abiotic", "Animal", "Disease", "Insect", "Treatment", "Vegetation")
+class_col <- c("HIGH", "MOD", "LOW", "UNKNOWN")
+damclass_color<- expand.grid(dam_col, class_col)
+damclass_color$Var3 <- c(RColorBrewer::brewer.pal(n = 7, "Dark2"), RColorBrewer::brewer.pal(n = 7, "Set2"),
+                         RColorBrewer::brewer.pal(n = 7, "Pastel2"), rep("darkgray", 7))
+damclass_color$Var4 <- paste0(damclass_color$Var1, "-", damclass_color$Var2)
 
 # common parameters for plots
 
