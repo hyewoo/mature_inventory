@@ -60,7 +60,20 @@ table2 <- reactive({
                  names_pattern = "(.*)_(.*)") %>%
     distinct() %>% data.table
   
-  table2 <- lead_vol_dat1 %>%
+  
+  if (input$SelectVar == "Fraser TSA"){
+    
+    lead_vol_tsa30 <- lead_vol_tsa30()
+    
+    lead_vol_dat1_1 <- lead_vol_dat1 %>%
+      filter(Design == "GRID") %>%
+      rbind(lead_vol_tsa30)
+    
+    
+  } else lead_vol_dat1_1 <- lead_vol_dat1
+  
+  
+  table2 <- lead_vol_dat1_1 %>%
     filter(var != "voldead") %>%
     select(Design, var, n, grd, inv, rom, l95rom, u95rom, sigrope) %>%
     mutate(var = fct_recode(var, "Age (yrs)" = "age", "HT (m)" = "ht",
@@ -123,7 +136,19 @@ table3 <- reactive({
                  names_pattern = "(.*)_(.*)") %>%
     distinct() %>% data.table
   
-  table3 <- lead_vol_dat1 %>%
+  
+  if (input$SelectVar == "Fraser TSA"){
+    
+    lead_vol_tsa30 <- lead_vol_tsa30()
+    
+    lead_vol_dat1_1 <- lead_vol_dat1 %>%
+      filter(Design == "GRID") %>%
+      rbind(lead_vol_tsa30)
+    
+  } else lead_vol_dat1_1 <- lead_vol_dat1
+  
+  
+  table3 <- lead_vol_dat1_1 %>%
     filter(var == "voldead") %>%
     select(Design, var, n, grd, inv, rom, l95rom, u95rom, sigrope) %>%
     mutate(var = "Volume (m3/ha)",
@@ -169,7 +194,19 @@ table4 <- reactive({
   
   invspc_vol_dat <- invspc_vol_dat()
   
-  table4 <- invspc_vol_dat %>%
+  
+  if (input$SelectVar == "Fraser TSA"){
+    
+    invspc_vol_tsa30 <- invspc_vol_tsa30()
+    
+    invspc_vol_dat1 <- invspc_vol_dat %>%
+      filter(Design == "GRID") %>%
+      rbind(invspc_vol_tsa30)
+    
+  } else invspc_vol_dat1 <- invspc_vol_dat
+  
+  
+  table4 <- invspc_vol_dat1 %>%
     select(Design, SPC_GRP_INV, n, grd_vol, inv_vol, 
            rom_vol, l95rom_vol, u95rom_vol, sigrope_vol) %>%
     mutate(grd_vol = round(grd_vol, 1),

@@ -28,10 +28,10 @@ output$description <- renderUI({
 
 samplemap <- reactive({
   req(input$SelectVar)
-  if(!is.null(clstr_id())){
+  if(!is.null(clstr_id_all())){
     
     location <- sample_data %>% 
-      filter(CLSTR_ID %in% clstr_id()) %>% 
+      filter(CLSTR_ID %in% clstr_id_all()) %>% 
       group_by(SITE_IDENTIFIER) %>% 
       mutate(visit_num = length(VISIT_NUMBER),
              visit_year = paste0(MEAS_YR, collapse  = ',')) %>%

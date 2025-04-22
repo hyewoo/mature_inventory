@@ -240,14 +240,43 @@ ui <- dashboardPage(
                         br()
                ),
                
+               "Forest Health",
+               tabPanel(title = "Growth and Mortality",
+                        uiOutput("coctext"),
+                        br(),
+                        plotOutput("cocfig", width = "600px"),
+                        br(),
+                        #leafletOutput("firemap"),
+                        #br()
+               ),
+               tabPanel(title = "Current Forest Health Incidence",
+                        uiOutput("health_inci"),
+                        br(),
+                        plotOutput("curr_fh_inci"),
+                        br(),
+                        plotOutput("sevplot", width = "500px", height = "300px"),
+                        br()
+               ),
+               tabPanel(title = "Change in Forest Health Incidence",
+                        uiOutput("fhcoctext1"),
+                        br(),
+                        plotOutput("cocfhplot"),
+                        br(),
+                        uiOutput("fhcoctext2"),
+                        br(),
+                        uiOutput("fhcocflex"),
+                        br()
+               ),
+               
                "General Notes",
                tabPanel(title = "Disclaimer",
                         uiOutput('disclaimer'),
-                        
+                        br()
                ),
                tabPanel(title = "Reference",
                         h4("Reference for Analyses of Past VRI Phase II / VPIP Projects"),
-                        uiOutput("ref")
+                        uiOutput("ref"),
+                        br()
                ),
                
              ),  # navlistPanel 

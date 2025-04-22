@@ -29,6 +29,7 @@ server <- function(input, output, session) {
   source(file.path("serverscripts/leadingsp.R"), local = TRUE)$value 
   source(file.path("serverscripts/fireimpact.R"), local = TRUE)$value 
   source(file.path("serverscripts/gn.R"), local = TRUE)$value 
+  source(file.path("serverscripts/foresthealth.R"), local = TRUE)$value 
 
   #output$downloadReport <- downloadHandler(
   #  filename = function() {
