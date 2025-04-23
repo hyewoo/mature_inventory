@@ -19,6 +19,7 @@ lwr_limit = 0.9
 upr_limit = 1.1
 
 savepath <- ""
+savepath <- "D:/R/mature_inventory/files/rds/250422"
 
 
 ### 1) Import ISMC compiled ground sample data
@@ -367,7 +368,7 @@ sample_data6 <- sample_data5 %>%
 
 sample_data7 <- sample_data6 %>%
   select(MGMT_UNIT, SITE_IDENTIFIER, VISIT_NUMBER, visit_number_new, CLSTR_ID, MEAS_YR, MEAS_YR_new,
-         LAST_MSMT, LAST_MSMT_new,
+         LAST_MSMT, LAST_MSMT_new, PERIOD,
          SAMPLE_ESTABLISHMENT_TYPE, SAMPLE_SITE_NAME, TSA, TSA_DESC, 
          Design, design_icon, GRID_SIZE, grid_size, Latitude, Longitude,
          IP_UTM, IP_NRTH, IP_EAST, BC_ALBERS_X, BC_ALBERS_Y, BC_Albers_X, BC_Albers_Y, 
@@ -401,7 +402,7 @@ sample_data7 <- sample_data6 %>%
          fire_year, stem_mortality, ba_mortality, wsv_mortality, ntwb_mortality
   )
 
-saveRDS(sample_data7, "//sfp.idir.bcgov/s164/S63016/!Workgrp/Inventory/!WorkArea/hwoo/Mature_Inventory/Work/Data/250417/sample_data.rds")
+saveRDS(sample_data7, paste0(savepath, "/sample_data.rds"))
 
 
 
@@ -454,7 +455,7 @@ VDYP_proj4 <- VDYP_proj3 %>%
          vdyp_vol_dwb = zoo::na.approx(PRJ_VOL_DWB, PRJ_TOTAL_AGE, rule = 2)) %>% 
   ungroup()
 
-saveRDS(VDYP_proj4, "//sfp.idir.bcgov/s164/S63016/!Workgrp/Inventory/!WorkArea/hwoo/Mature_Inventory/Work/Data/250417/VDYP_proj_all.rds")
+saveRDS(VDYP_proj4, paste0(savepath, "/VDYP_proj_all.rds"))
 
 #VDYP_proj5 <- VDYP_proj4 %>%
 #  filter(!is.na(CLSTR_ID)) %>%
@@ -469,13 +470,47 @@ VDYP_proj6 <- VDYP_proj5 %>%
   arrange(desc(LAYER_ID)) %>%
   slice(1)
 
-VDYP_proj6 <- VDYP_proj6  %>%
+VDYP_proj6_1 <- VDYP_proj6 %>%
+  left_join(sample_data7 %>% select(CLSTR_ID, SPECIES_CD_1), by = "CLSTR_ID")
+
+VDYP_proj6 <- VDYP_proj6_1  %>%
   rowwise() %>%
   #*further adjustments, corrections to species codes based on bec zone & expected outcome;
   # *bec coast vs interior for species corrections;
   mutate(bec_i_c = ifelse(BEC_ZONE %in% c('CWH','CDF','MH','CMA'), "C", "I"), 
-         SPECIES_INV = SPECIES_1_CODE,
-         SPECIES_INV = case_when(SPECIES_1_CODE == "A" ~ "AT",
+         
+         SPECIES_INV = SPECIES_CD_1,
+         SPECIES_INV = case_when(SPECIES_CD_1 == "A" ~ "AT",
+                                 SPECIES_CD_1 == "AX" ~ "AC",
+                                 SPECIES_CD_1 == "C" ~ "CW",
+                                 SPECIES_CD_1 %in% c("D", "RA") ~ "DR",
+                                 SPECIES_CD_1 %in% c("E", "EXP", "EA") ~ "EP",
+                                 SPECIES_CD_1 == "J" ~ "JR",
+                                 SPECIES_CD_1 == "L" ~ "LW",
+                                 SPECIES_CD_1 %in% c("P", "PLI") ~ "PL",
+                                 SPECIES_CD_1 %in% c("FDI", "FDC") ~ "FD",
+                                 SPECIES_CD_1 %in% c("SX", "SXL", "SXW") ~ "SW",
+                                 SPECIES_CD_1 == "SXE" ~ "SE",
+                                 SPECIES_CD_1 == "T" ~ "TW",
+                                 SPECIES_CD_1 %in% c("X", "XC") ~ "XC",
+                                 SPECIES_CD_1 == "ZH" ~ "XH",
+                                 TRUE ~ substr(SPECIES_CD_1, 1, 2)), 
+         # *further adjustments, corrections to species codes based on bec zone & expected outcome;
+         SPECIES_INV = case_when(grepl("S", SPECIES_INV) == T & BEC_ZONE == "ESSF" ~ "SE",
+                                 grepl("S", SPECIES_INV) == T & bec_i_c == "I" & BEC_ZONE != "ESSF" ~ "SW",
+                                 grepl("S", SPECIES_INV) == T & bec_i_c == "C" ~ "SS",
+                                 grepl("B", SPECIES_INV) == T & bec_i_c == "C" & BEC_ZONE %in% c('CWH','CDF') ~ "BG",
+                                 grepl("B", SPECIES_INV) == T & bec_i_c == "C" & !(BEC_ZONE %in% c('CWH','CDF')) ~ "BA",
+                                 grepl("B", SPECIES_INV) == T & bec_i_c == "I" ~ "BL",
+                                 grepl("H", SPECIES_INV) == T & bec_i_c == "C" & BEC_ZONE %in% c('CWH','CDF') ~ "HW",
+                                 grepl("H", SPECIES_INV) == T & bec_i_c == "C" & !(BEC_ZONE %in% c('CWH','CDF')) ~ "HM",
+                                 grepl("H", SPECIES_INV) == T & bec_i_c == "I" ~ "HW",
+                                 TRUE ~ SPECIES_INV),#,
+         #SPC_GRP_GRD = ifelse(SPECIES %in% decidspc, 'DE', SPECIES),
+         SPC_GRP2 = ifelse(SPECIES_INV %in% decidspc, 'DE', SPECIES_INV),
+                           
+         SPECIES_INV_prj = SPECIES_1_CODE,
+         SPECIES_INV_prj = case_when(SPECIES_1_CODE == "A" ~ "AT",
                                  SPECIES_1_CODE == "AX" ~ "AC",
                                  SPECIES_1_CODE == "C" ~ "CW",
                                  SPECIES_1_CODE %in% c("D", "RA") ~ "DR",
@@ -491,18 +526,18 @@ VDYP_proj6 <- VDYP_proj6  %>%
                                  SPECIES_1_CODE == "ZH" ~ "XH",
                                  TRUE ~ substr(SPECIES_1_CODE, 1, 2)), 
          # *further adjustments, corrections to species codes based on bec zone & expected outcome;
-         SPECIES_INV = case_when(grepl("S", SPECIES_INV) == T & BEC_ZONE == "ESSF" ~ "SE",
-                                 grepl("S", SPECIES_INV) == T & bec_i_c == "I" & BEC_ZONE != "ESSF" ~ "SW",
-                                 grepl("S", SPECIES_INV) == T & bec_i_c == "C" ~ "SS",
-                                 grepl("B", SPECIES_INV) == T & bec_i_c == "C" & BEC_ZONE %in% c('CWH','CDF') ~ "BG",
-                                 grepl("B", SPECIES_INV) == T & bec_i_c == "C" & !(BEC_ZONE %in% c('CWH','CDF')) ~ "BA",
-                                 grepl("B", SPECIES_INV) == T & bec_i_c == "I" ~ "BL",
-                                 grepl("H", SPECIES_INV) == T & bec_i_c == "C" & BEC_ZONE %in% c('CWH','CDF') ~ "HW",
-                                 grepl("H", SPECIES_INV) == T & bec_i_c == "C" & !(BEC_ZONE %in% c('CWH','CDF')) ~ "HM",
-                                 grepl("H", SPECIES_INV) == T & bec_i_c == "I" ~ "HW",
-                                 TRUE ~ SPECIES_INV),#,
+         SPECIES_INV_prj = case_when(grepl("S", SPECIES_INV_prj) == T & BEC_ZONE == "ESSF" ~ "SE",
+                                 grepl("S", SPECIES_INV_prj) == T & bec_i_c == "I" & BEC_ZONE != "ESSF" ~ "SW",
+                                 grepl("S", SPECIES_INV_prj) == T & bec_i_c == "C" ~ "SS",
+                                 grepl("B", SPECIES_INV_prj) == T & bec_i_c == "C" & BEC_ZONE %in% c('CWH','CDF') ~ "BG",
+                                 grepl("B", SPECIES_INV_prj) == T & bec_i_c == "C" & !(BEC_ZONE %in% c('CWH','CDF')) ~ "BA",
+                                 grepl("B", SPECIES_INV_prj) == T & bec_i_c == "I" ~ "BL",
+                                 grepl("H", SPECIES_INV_prj) == T & bec_i_c == "C" & BEC_ZONE %in% c('CWH','CDF') ~ "HW",
+                                 grepl("H", SPECIES_INV_prj) == T & bec_i_c == "C" & !(BEC_ZONE %in% c('CWH','CDF')) ~ "HM",
+                                 grepl("H", SPECIES_INV_prj) == T & bec_i_c == "I" ~ "HW",
+                                 TRUE ~ SPECIES_INV_prj),#,
          #SPC_GRP_GRD = ifelse(SPECIES %in% decidspc, 'DE', SPECIES),
-         SPC_GRP2 = ifelse(SPECIES_INV %in% decidspc, 'DE', SPECIES_INV)#,
+         SPC_GRP2_prj = ifelse(SPECIES_INV_prj %in% decidspc, 'DE', SPECIES_INV_prj)#,
          #LIVE_VOL_PER_HA = ifelse(SPECIES == "PL", LIVE_VOL_PER_HA_125, LIVE_VOL_PER_HA_175),
          #DEAD_VOL_PER_HA = ifelse(SPECIES == "PL", DEAD_VOL_PER_HA_125, DEAD_VOL_PER_HA_175),
          #source = "Inventory"
@@ -510,7 +545,7 @@ VDYP_proj6 <- VDYP_proj6  %>%
   as.data.table()
 
 
-saveRDS(VDYP_proj6, "//sfp.idir.bcgov/s164/S63016/!Workgrp/Inventory/!WorkArea/hwoo/Mature_Inventory/Work/Data/250417/VDYP_dat.rds")
+saveRDS(VDYP_proj6, paste0(savepath, "/VDYP_dat.rds"))
 
 
 
@@ -577,8 +612,8 @@ grd_by_sp4 <- grd_by_sp3 %>%
   )
 
 
-saveRDS(grd_by_sp4, "//sfp.idir.bcgov/s164/S63016/!Workgrp/Inventory/!WorkArea/hwoo/Mature_Inventory/Work/Data/250417/VDYP_proj.rds")
-saveRDS(grd_by_sp3, "//sfp.idir.bcgov/s164/S63016/!Workgrp/Inventory/!WorkArea/hwoo/Mature_Inventory/Work/Data/250417/lead_vol.rds")
+saveRDS(grd_by_sp4, paste0(savepath, "/VDYP_proj.rds"))
+saveRDS(grd_by_sp3, paste0(savepath, "/lead_vol.rds"))
 
 
 ################################################################################
@@ -719,14 +754,14 @@ vol_comp <- vol_comp %>%
   left_join(sample_data7 %>% select(CLSTR_ID, Design),
             by = "CLSTR_ID")
 
-saveRDS(vol_comp, "//sfp.idir.bcgov/s164/S63016/!Workgrp/Inventory/!WorkArea/hwoo/Mature_Inventory/Work/Data/250417/spc_vol.rds")
+saveRDS(vol_comp, paste0(savepath, "/spc_vol.rds"))
 
 
 
 VDYP_grd <- VDYP_grd %>%
   filter(CLSTR_ID %in% sample_data7$CLSTR_ID)
 
-saveRDS(VDYP_grd, "//sfp.idir.bcgov/s164/S63016/!Workgrp/Inventory/!WorkArea/hwoo/Mature_Inventory/Work/Data/250417/VDYP_grd.rds")
+saveRDS(VDYP_grd, paste0(savepath, "/VDYP_grd.rds"))
 
 
 
@@ -1229,7 +1264,6 @@ for (i in unique(Tree_FH_data1$tree_id)){
 
 
 ### Save data for application
-saveRDS(Tree_FH_data1, "//sfp.idir.bcgov/s164/S63016/!Workgrp/Inventory/!WorkArea/hwoo/Mature_Inventory/Work/Data/250415/Tree_FH_data_damupdate.rds")
-
+saveRDS(Tree_FH_data1, paste0(savepath, "/Tree_FH_data.rds"))
 
 

@@ -209,7 +209,8 @@ table4 <- reactive({
   table4 <- invspc_vol_dat1 %>%
     select(Design, SPC_GRP_INV, n, grd_vol, inv_vol, 
            rom_vol, l95rom_vol, u95rom_vol, sigrope_vol) %>%
-    mutate(grd_vol = round(grd_vol, 1),
+    mutate(Design = factor(Design, levels = c("GRID", "PHASE2")),
+           grd_vol = round(grd_vol, 1),
            inv_vol = round(inv_vol, 1),
            rom_vol = round(rom_vol, 2),
            l95rom_vol = ifelse(n >= 8,  round(l95rom_vol, 2), NA),

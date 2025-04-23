@@ -33,7 +33,8 @@ samplemap <- reactive({
     location <- sample_data %>% 
       filter(CLSTR_ID %in% clstr_id_all()) %>% 
       group_by(SITE_IDENTIFIER) %>% 
-      mutate(visit_num = length(VISIT_NUMBER),
+      mutate(Design = factor(Design, levels = c("GRID", "PHASE2")),
+             visit_num = length(VISIT_NUMBER),
              visit_year = paste0(MEAS_YR, collapse  = ',')) %>%
       select(SITE_IDENTIFIER, SAMPLE_ESTABLISHMENT_TYPE, visit_num, visit_year, BECsub,
              MGMT_UNIT, TSA_DESC, BEC_ZONE, BEC_SBZ, BEC_VAR, GRID_SIZE, Design, design_icon,
@@ -56,12 +57,12 @@ samplemap <- reactive({
     iconFile1 <- pchIcons(3, 20, 20, 
                           col = "brown3", lwd = 3)
     iconFile2 <- pchIcons(2, 20, 20, 
-                          col = "chartreuse4", lwd = 2)
+                          col = "chartreuse4", lwd = 3)
     
     plotIcons <- iconList(darkred = makeIcon(iconFile1, iconWidth = 15, iconHeight = 15),
                           darkolivegreen4 = makeIcon(iconFile2, iconWidth = 10, iconHeight = 10))
     
-    pal <- colorFactor(c("brown3", "chartreuse4"), factor(location$Design))
+    pal <- colorFactor(c("brown3", "chartreuse4"), location$Design)
     
     
     samplemap <- leaflet() %>% 
@@ -255,9 +256,10 @@ fig2 <- reactive({
     geom_point(aes(x = Design, y = rom, col = Design, group = Design), size = 3) +
     geom_point(aes(x = Design, y = l95rom, col = Design, group = Design), size = 3) +
     geom_point(aes(x = Design, y = u95rom, col = Design, group = Design), size = 3) +
-    geom_segment(aes(y = l95rom, yend  = u95rom, x = Design, col = Design, group = Design), linewidth = 1.2) +
+    geom_segment(aes(y = l95rom, yend  = u95rom, x = Design, col = Design, group = Design), 
+                 linewidth = 1.2, show.legend = TRUE) +
     scale_x_discrete(limit = c("PHASE2", "GRID")) +
-    scale_color_manual(values = c("brown3", "chartreuse4")) +
+    scale_color_manual(values = c("brown3", "chartreuse4"), drop = FALSE) +
     coord_flip() +
     facet_wrap(~var, scales = "free_y", ncol = 1, labeller = as_labeller(c(
       'age'="Age",
