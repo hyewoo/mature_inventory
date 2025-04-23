@@ -109,8 +109,11 @@ output$cocfig <- renderPlot({
 
 
 curfhtext <- reactive({
-  req(input$SelectCategory, input$SelectVar)
-  curfhtext <- HTML("All tagged trees in the grid samples are assessed for up to five forest health damage agents
+  
+  clstr_id_grid <- clstr_id_grid()
+  
+  curfhtext <- HTML(paste0("All tagged trees in the <b>n=", length(clstr_id_grid), 
+  "</b> grid samples are assessed for up to five forest health damage agents
 per tree. The mean incidence and 95% confidence intervals by damage
 agent (expressed as a percent of total live stems/ha of all unique damage
 agents recorded per tree) are computed at the latest measurement. Note
@@ -124,8 +127,7 @@ crook severity is further classified into minor (<50%) or major
 (>=50%) diameter offsets. 
 The severity of other scalable damages—such as fire, beetle, root rot, stem rust, 
 and weevil—is summarized by damage class, if available (figure below). 
-A full list of recorded 
-damage agents is under General Notes.")
+A full list of recorded damage agents and severity classes is under General Notes."))
   return(curfhtext)
 })
 
@@ -422,8 +424,7 @@ output$cocfhplot <- renderPlot({
 
 
 fhcoctext2 <- reactive({
-  req(input$SelectCategory, input$SelectVar)
-  
+
   fhcoctext2 <- HTML("All trees that were alive at the beginning of the period, have either
 survived or died between measurements. The table below summarizes
 the components of change for those trees affected by 

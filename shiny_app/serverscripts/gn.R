@@ -58,6 +58,86 @@ output$disclaimer <- renderUI({
 })
 
 
+output$sp_dam_header <- renderUI({
+  
+  HTML(paste0("<h3>Tree Species and Damage Agents Recorded from Mature Ground Samples in ", title(),"</h3>"))
+  
+})
+
+
+spcdtab <- reactive({
+ 
+  sp_cd <- tree_fh_data  %>%
+    filter(CLSTR_ID %in% clstr_id_grid(), S_F == "S") %>%
+    pull(SPECIES) %>%
+    unique()
+  
+  spcd1 <- spcd %>%
+    filter(species %in% sp_cd)
+  
+  names(spcd1) <- c("Code", "Name")
+  
+  return(spcd1)
+})
+
+output$sp_table <- renderDT({
+  datatable(spcdtab(), rownames= FALSE)
+})
+
+
+damcdtab <- reactive({
+  
+  dam_agn <- tree_fh_data  %>%
+    filter(CLSTR_ID %in% clstr_id_grid(), S_F == "S") %>%
+    pull(AGN) %>%
+    unique()
+  
+  damcd1 <- damcd %>%
+    filter(dam_agna %in% dam_agn)
+  
+  names(damcd1) <- c("Code", "Name")
+  
+  return(damcd1)
+})
+
+
+output$dam_table <- renderDT({
+  datatable(damcdtab(), rownames= FALSE)
+})
+
+
+damsevtable <- reactive({
+  
+  dam_agn <- tree_fh_data %>%
+    filter(CLSTR_ID %in% clstr_id_grid(), S_F == "S") %>%
+    filter(! AGN %in% c("O", "U", "I")) %>%
+    pull(AGN) %>%
+    unique() 
+  
+  damsev1 <- damsev %>%
+    filter(dam_3letter %in% dam_agn) %>%
+    group_by(Group, Low, Mod, High) %>%
+    summarise(AGN = str_c(dam_3letter, collapse  = ",")) %>%
+    flextable() %>%
+    set_header_labels(
+      values = list(Group = "Group", Low = "LOW", Mod = "MOD", 
+                    High = "HIGH", AGN = "Damage Agent")) %>%
+    bold(part = 'header', bold = TRUE) %>%
+    autofit()
+  
+  return(damsev1)
+  
+})
+
+
+
+output$damsevtable <- renderUI({
+  
+  htmltools_value(damsevtable())
+  
+})
+
+
 ref <- reactive({
   ref <-paste0("<p><a href='https://www2.gov.bc.ca/assets/gov/farming-natural-resources-and-industry/forestry/stewardship/forest-analysis-inventory/ground-sample-inventories/vri-audits/planning-reports/tsa-vri-ground-sampling/arrowtsa_vrigs_vpip.pdf'>
                https://www2.gov.bc.ca/assets/gov/farming-natural-resources-and-industry/forestry/stewardship/forest-analysis-inventory/ground-sample-inventories/vri-audits/planning-reports/tsa-vri-ground-sampling/arrowtsa_vrigs_vpip.pdf</a></p>")
