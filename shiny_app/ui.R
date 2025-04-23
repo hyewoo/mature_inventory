@@ -102,16 +102,32 @@ ui <- dashboardPage(
           solidHeader = TRUE, status = "primary", width = NULL,
           
           column(3, 
-                 list(tags$div(align = 'left', 
-                               class = 'multicol', 
-                               radioButtons("SelectCategory", "Strata",
-                                            choiceNames = c("By TSA", "By BEC", "By TFL"),
-                                            choiceValues = c("TSA_DESC", "BEC_ZONE", "TFL"),
-                                            #choices = list("By TSA" = "TSA_DESC", 
-                                            #               "By BEC" = "BEC_ZONE",
-                                            #               "By TFL" = "TFL"), 
-                                            selected = "TSA_DESC"),
-                               style = "font-size:100%", align = "center"))), 
+                 #list(tags$div(align = 'left', 
+                 #              class = 'multicol', 
+                 #              radioButtons("SelectCategory", "Strata",
+                 #                           choiceNames = c("By TSA", "By BEC", "By TFL"),
+                 #                           choiceValues = c("TSA_DESC", "BEC_ZONE", "TFL"),
+                 #                           #choices = list("By TSA" = "TSA_DESC", 
+                 #                           #               "By BEC" = "BEC_ZONE",
+                 #                           #               "By TFL" = "TFL"), 
+                 #                           selected = "TSA_DESC"),
+                 #              style = "font-size:100%", align = "center"))
+                 
+                 HTML('<div align="left" class="multicol" style="font-size:100%; text-align:left;">
+  <label for="SelectCategory">Strata</label><br>
+  <div style="line-height:1; margin-bottom:1px;">
+  <input type="radio" id="tsa" name="SelectCategory" value="TSA_DESC" checked>
+  <label for="tsa" style="font-weight:normal;">By TSA</label><br>
+  
+  <input type="radio" id="bec" name="SelectCategory" value="BEC_ZONE" disabled>
+  <label for="bec" style="font-weight:normal;">By BEC</label><br>
+  
+  <input type="radio" id="tfl" name="SelectCategory" value="TFL" disabled >
+  <label for="tfl" style="font-weight:normal;">By TFL</label>
+  </div>  
+</div>'
+                 )
+                 ), 
           
           
           column(3, offset = 1, selectInput(inputId = "SelectVar",

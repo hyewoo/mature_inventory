@@ -130,10 +130,11 @@ fig4 <- reactive({
   spcomp <- spcomp()
   
   fig4 <- spcomp %>%
+    mutate(Design = factor(Design, levels = c("GRID", "PHASE2"))) %>%
     ggplot() +
     geom_bar(aes(x = SPECIES, y = livevolperc/100, group = source, fill = source), 
              position = position_dodge2(preserve = "single"), width = 0.7, stat = "identity") +
-    facet_wrap(~Design, ncol = 2) +
+    facet_wrap(~Design, ncol = 2, drop=FALSE) +
     scale_fill_manual(values = c("steelblue", "#B4464B"), name = NULL) +
     scale_x_discrete(drop=T) +
     scale_y_continuous(labels = scales::label_percent(), expand = expansion(mult = c(0, 0.1))) +
@@ -167,10 +168,11 @@ fig5 <- reactive({
   spcomp <- spcomp()
   
   fig5 <- spcomp %>%
+    mutate(Design = factor(Design, levels = c("GRID", "PHASE2"))) %>%
     ggplot() +
     geom_bar(aes(x = SPECIES, y = deadvolperc/100, group = source, fill = source), 
              position = position_dodge2(preserve = "single"), width = 0.7, stat = "identity") +
-    facet_wrap(~Design, ncol = 2) +
+    facet_wrap(~Design, ncol = 2, drop=FALSE) +
     scale_fill_manual(values = c("steelblue", "#B4464B"), name = NULL) +
     scale_x_discrete(drop=T) +
     scale_y_continuous(labels = scales::label_percent(), expand = expansion(mult = c(0, 0.1))) +
@@ -205,7 +207,8 @@ fig6 <- reactive({
   scatter <- lead_vol_dat %>%
     left_join(lead_vol %>% select(CLSTR_ID, SPECIES_INV, SPC_GRP2), by = "CLSTR_ID") %>%
     left_join(top3spc %>% select(-n), by = c('Design', 'SPC_GRP2')) %>%
-    mutate(SPC_GRP_INV = ifelse(!is.na(top3) & top3 == "Y", SPC_GRP2, "OTH")) %>%
+    mutate(SPC_GRP_INV = ifelse(!is.na(top3) & top3 == "Y", SPC_GRP2, "OTH"),
+           Design = factor(Design, levels = c("GRID", "PHASE2"))) %>%
     select(Design, CLSTR_ID, SPECIES_INV, SPC_GRP2, SPC_GRP_INV,
            inv_age = PROJ_AGE_ADJ, inv_ht = vdyp_dom_ht, inv_vol = vdyp_vol_dwb, 
            grd_age = AGET_TLSO, grd_ht = HT_TLSO, grd_vol = NTWB_NVAF_LS,
@@ -231,7 +234,7 @@ fig6 <- reactive({
                           guide = guide_legend(override.aes = list(color = c("darkgray", "red")))) +
     scale_color_manual(name = "SPECIES", values = (hcl.colors(npal, palette = "Dark 3"))) +
     labs(x = "Inventory", y = "Ground") +
-    facet_wrap(var ~  Design , scales = "free", ncol = 2,
+    facet_wrap(var ~  Design , scales = "free", ncol = 2,drop=FALSE,
                labeller = as_labeller(c(
                  'age'="Total Age (yrs)",
                  'ht' = 'Height (m)',
