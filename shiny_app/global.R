@@ -55,6 +55,11 @@ spc_vol <- readRDS("data/spc_vol.rds")
 vdyp_grd <- readRDS("data/VDYP_grd.rds")
 tree_fh_data <- readRDS("data/Tree_FH_data.rds")
 
+# lookups 
+spcd<-readRDS("data/spcd.rds")
+damcd<-readRDS("data/damcd.rds")
+damsev<-readRDS("data/sev_lookup.rds")
+
 # shapefiles (for map) 
 tsa_sp <- st_transform(st_read("data/tsa_sp.shp"),4326) 
 fire_sp <- st_transform(st_read("data/fire_peri_lowres.shp"),4326)

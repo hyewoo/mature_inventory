@@ -289,6 +289,20 @@ ui <- dashboardPage(
                         uiOutput('disclaimer'),
                         br()
                ),
+               tabPanel(title = "Tree Species and Damage Agents",
+                        uiOutput('sp_dam_header'),
+                        fluidRow(
+                          column(width = 6,
+                                 h4("Tree Species Codes / Names"),
+                                 DT::dataTableOutput("sp_table")),
+                          column(width = 6,
+                                 h4("Damage Agent Codes / Names"),
+                                 DT::dataTableOutput('dam_table'))
+                        ),
+                        br(),
+                        uiOutput('damsevtable'),
+                        br()
+               ),
                tabPanel(title = "Reference",
                         h4("Reference for Analyses of Past VRI Phase II / VPIP Projects"),
                         uiOutput("ref"),
