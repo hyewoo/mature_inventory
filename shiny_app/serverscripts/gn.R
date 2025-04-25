@@ -2,7 +2,7 @@
 disclaimer <- reactive({
   disclaimer <- paste0(
     "<p>Ground sample measurement dates (and compilations) range between 2004 
-    and 2016.</p>
+    and 2016.</p>","
     <p>In contrast the spatial inventory attributes (from the 2021 published 
     Forest Vegetation Composite Rank 1 Layer and projected to the end of 2021), 
     are adjusted back to the ground sample measurement year using VDYP7 Batch / 

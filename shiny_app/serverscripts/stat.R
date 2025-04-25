@@ -265,7 +265,7 @@ bias_comp <- reactive({
                             area and volume attributes are assessed by design 
                             type.</p>
                        
-                       <ol><li><u>Total Bias</u> = Ground measurement minus 
+                       <ul><li><u>Total Bias</u> = Ground measurement minus 
                        model projection (based on inventory input attributes). 
                        Assesses the total error between ground sample 
                        measurement & VDYP growth model projection.</li>
@@ -276,7 +276,7 @@ bias_comp <- reactive({
                        
                        <li><u>Attribute Bias</u> = Total Bias minus Model Bias. 
                        Assesses the error due to the inventory classification 
-                       attributes.</li></ol></br>")
+                       attributes.</li></ul></br>")
   return(bias_comp)
 })
 

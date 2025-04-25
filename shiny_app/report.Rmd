@@ -1,0 +1,368 @@
+---
+title: "`r title()` Mature Inventory Assessment"
+author: "Forest Analysis and Inventory Branch"
+date: "Version 2025-04-22; Created `r Sys.Date()`"
+#runtime: shiny
+always_allow_html: true
+geometry: margin=1cm
+output:
+  pdf_document:
+    keep_tex: true
+    latex_engine: xelatex
+    toc: true
+  html_document:
+    toc: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(fig.pos = "H", out.extra = "")
+knitr::opts_chunk$set(echo = FALSE, fig.align="center")
+knitr::opts_chunk$set(fig.height = 4, collapse = TRUE)
+knitr::opts_chunk$set(dev = "ragg_png")
+set_flextable_defaults(fonts_ignore=TRUE)
+
+htmltopdf <-function(x) {
+  if (input$format == "HTML"){
+    x
+    } else {
+      pandoc::pandoc_convert(text = x, from = "html", to = "markdown")
+      }
+}
+
+colorize <- function(x, color) {
+  if (knitr::is_latex_output()) {
+    sprintf("\\textcolor{%s}{%s}", color, x)
+  } else if (knitr::is_html_output()) {
+    sprintf("<span style='color: %s;'>%s</span>", color, x)
+  } else x
+}
+```
+
+<style>
+.leaflet {
+    margin: auto;
+}
+</style>
+
+
+## Overview
+
+`r htmltopdf(description())`
+
+```{r samplemap, fig.width=8, echo=FALSE, fig.align='center'}
+samplemap()
+```
+
+<br>
+
+
+## Summary of Key Results
+
+#### Sample Size & Measurement Year by Ground Sample Design
+
+```{r samplesize, echo=FALSE,warning=FALSE, message = FALSE}
+samplesize()
+```
+
+
+::: columns
+::: column
+
+#### Leading Species Agreement (Inventory vs. Ground)
+
+```{r, include=T, echo=F,warning=FALSE, message = FALSE}
+correct_sp_lead()
+```
+:::
+
+::: column
+
+#### Overall Species Agreement (Inventory vs. Ground)
+
+```{r, include=T, echo=F,warning=FALSE, message = FALSE}
+corsp_vol_flex()
+```
+:::
+:::
+
+#### Listing of those Attributes where Ground: Inventory ratio of means are practically different (Y) or not practically different (N) from 1.0. Attributes which are not listed here have inconclusive (I) results.
+
+::: columns
+::: column
+```{r, include=T, echo=F,warning=FALSE, message = FALSE}
+test1()
+
+test2()
+
+test3()
+```
+:::
+
+::: column
+```{r, include=T, fig.height=8,fig.width=3,echo=F,warning=FALSE}
+fig2()
+```
+:::
+:::
+
+## Stand Summaries
+
+`r htmltopdf(ysd())`
+
+```{r, include=T, fig.height=8,echo=F,warning=FALSE}
+table1()
+
+table2()
+
+table3()
+
+table4()
+```
+
+## Componets of Bias
+
+#### Model vs. Attribute Bias
+
+`r htmltopdf(bias_comp())`
+
+```{r, fig.width=8,fig.height=3, echo=FALSE,warning=FALSE, message = FALSE}
+fig3() + theme_bw(12) +
+      theme(
+        legend.position = "top",
+          axis.ticks = element_blank(),
+          axis.text.y = element_blank(),
+          panel.grid.major.y = element_blank(),
+          #panel.grid.minor.x = element_blank(),
+          panel.grid.minor.y = element_blank(),
+          strip.placement = "outside"
+      ) 
+
+```
+
+::: columns
+::: column
+```{r, include=T, echo=F,warning=FALSE, message = FALSE}
+fig3_1()
+```
+:::
+
+::: column
+```{r, include=T, echo=F,warning=FALSE, message = FALSE}
+fig3_2()
+```
+:::
+:::
+
+
+## Ground vs. Inventory
+
+#### Leading Species
+
+`r htmltopdf(spcomp_text())`
+
+```{r, fig.height=4,echo=FALSE,warning=FALSE}
+ld_table1() %>% bg(j = (1:(ld_table1()$body$content$ncol/2))*2, 
+                     bg = "lightgray", part = "body")
+
+ld_table2() %>% bg(j = (1:(ld_table2()$body$content$ncol/2))*2, 
+                     bg = "lightgray", part = "body")
+
+```
+
+#### Overall Species
+
+```{r, fig.height=4,echo=FALSE,warning=FALSE}
+fig4() + theme_bw(12) +
+    theme(
+      panel.grid.major.y = element_line(color = 'darkgray'), 
+      plot.caption = element_text(hjust=0, size=rel(1.2)),
+      legend.position="top",
+      panel.grid.major.x = element_blank(),
+      panel.grid.minor.x = element_blank()
+    )  
+
+fig5() + theme_bw(12) +
+    theme(
+      panel.grid.major.y = element_line(color = 'darkgray'), 
+      plot.caption = element_text(hjust=0, size=rel(1.2)),
+      legend.position="top",
+      panel.grid.major.x = element_blank(),
+      panel.grid.minor.x = element_blank()
+    )  
+
+```
+
+#### Other Attributes
+
+```{r, fig.height=8,echo=FALSE,warning=FALSE}
+fig6() + theme_bw(12) +
+    theme(
+       strip.background.x = element_rect(fill=NA, colour=NA,size=1)
+    )  
+
+```
+
+
+## Inventory Standards of Data Collection
+
+`r htmltopdf(stdcode_text())`
+
+```{r, fig.height=2,echo=FALSE,warning=FALSE}
+fig7() + theme_bw(12) +
+    theme(
+      legend.title = NULL,
+          rect = element_blank(),
+          panel.grid.major.y = element_blank()
+    )  
+```
+
+
+## Wildfire Impact
+
+#### Ground Samples Impacted by Recent Wildfires
+
+`r htmltopdf(fire_text())`
+
+```{r, fig.width=5, fig.height=3,echo=FALSE,warning=FALSE, message = FALSE}
+fig8() 
+```
+
+```{r firemap, fig.width=8, echo=FALSE, fig.align='center'}
+firemap()
+```
+
+
+## Forest Health
+
+#### Growth and Mortality
+
+`r htmltopdf(coctext())`
+
+```{r, fig.height=4,echo=FALSE,warning=FALSE, message = FALSE}
+cocfig() + theme_bw(12) +
+      theme(
+        axis.title.y = element_text(color="steelblue"),
+        axis.title.y.right = element_text(colour = "#B4464B"),
+        legend.box.background = element_rect(fill = "white", color = NA),
+        legend.position = c(0.15, 0.85),
+        legend.title = element_blank(),
+        axis.line = element_line(colour="darkgray"), 
+        panel.grid.major.y = element_line(color = 'darkgray'), 
+        panel.grid.major.x = element_blank(),
+        panel.grid.minor.x = element_blank(),
+        rect = element_blank()
+      ) 
+```
+
+
+#### Current Forest Health Incidence
+
+`r htmltopdf(curfhtext())`
+
+```{r, fig.width=8,echo=FALSE,warning=FALSE, message = FALSE}
+curfhplot() + theme_bw(12) +
+    theme(
+      axis.line = element_line(colour="darkgray"), 
+      axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+      panel.grid.major.y = element_line(color = 'darkgray'), 
+      #panel.grid.major.x = element_blank(),
+      panel.grid.minor.x = element_blank(),
+      rect = element_blank(),
+      legend.box.background = element_rect(fill = "white", color = "lightgray"),
+      legend.position = "none",
+      legend.title = element_blank(),
+      plot.caption = element_text(hjust=0, size=rel(1.2))
+    )  
+```
+
+```{r, fig.width=5,fig.height=3,echo=FALSE,warning=FALSE, message = FALSE}
+sevplot() + theme_bw(12) +
+    theme(
+      axis.line = element_line(colour="darkgray"), 
+      panel.grid.major.y = element_line(color = 'darkgray'), 
+      panel.grid.major.x = element_blank(),
+      panel.grid.minor.x = element_blank(),
+      rect = element_blank(),
+      legend.position = "inside",
+      legend.position.inside = c(0.85, 0.85),
+      legend.box.background = element_rect(fill = "white", color = NA),
+      plot.caption = element_text(hjust=0, size=rel(1.2))
+    ) 
+```
+
+
+#### Change in Forest Health Incidence
+
+`r htmltopdf(fhcoctext1())`
+
+```{r, fig.width=8,echo=FALSE,warning=FALSE, message = FALSE}
+cocfhplot()  + theme_bw(12) +
+      theme(
+        axis.line = element_line(colour="darkgray"), 
+        axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
+        panel.grid.major.y = element_line(color = 'darkgray'), 
+        panel.grid.major.x = element_blank(),
+        panel.grid.minor.x = element_blank(),
+        rect = element_blank(),
+        legend.box.background = element_rect(fill = "white", color = "lightgray"),
+        legend.position = c(0.9, 0.8),
+        legend.title = element_blank(),
+        plot.caption = element_text(hjust=0, size=rel(1.2))
+      ) 
+```
+
+`r htmltopdf(fhcoctext2())`
+
+```{r, echo=FALSE,warning=FALSE, message = FALSE, message = FALSE}
+fhcocflex()
+```
+
+
+## General Notes
+
+### Disclaimer
+
+`r htmltopdf(disclaimer())`
+
+
+## Tree Species and Damage Agents Recorded from Mature Samples in `r title()`
+
+:::::::::::::: {style="display: grid; grid-template-columns: 1fr 1fr; grid-column-gap: 10px; "}
+::: {}
+#### Tree Species Codes / Names
+```{r, include=T, echo=F, warning=FALSE, message = FALSE, message = FALSE}
+if (input$format == "HTML"){
+    datatable(spcdtab(), rownames= FALSE)
+    } else {
+      kable(spcdtab())
+      }
+```
+:::
+
+::: {}
+#### Damage Agent Codes / Names
+```{r, include=T, echo=F, warning=FALSE, message = FALSE}
+if (input$format == "HTML"){
+    datatable(damcdtab(), rownames= FALSE)
+    } else {
+      kable(damcdtab())
+      }
+```
+:::
+::::::::::::::
+
+```{r, echo=FALSE,warning=FALSE, message = FALSE}
+damsevtable()
+```
+
+
+## Reference
+
+`r htmltopdf(ref())`
+
+
+
+
+
+
+
