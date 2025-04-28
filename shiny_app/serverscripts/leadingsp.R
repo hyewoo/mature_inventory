@@ -146,6 +146,7 @@ fig4 <- reactive({
       legend.position="top",
       panel.grid.major.x = element_blank(),
       panel.grid.minor.x = element_blank(),
+      axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)
       #rect = element_blank()
     ) 
   
@@ -160,6 +161,21 @@ output$fig4 <- renderPlot({
   fig4()
   
 })
+
+
+output$fig4_caption <- renderUI({
+  req(input$SelectVar)
+  HTML(paste0("<h5>Figure 4. Overall live standing species composition (% of 
+              total live merch volume reported in Table 2) between ground and 
+              inventory, for both GRID (left) and Phase 2 (right) sample designs. 
+              Species percent is computed from the summed live merch volume 
+              (m3/ha) by species of all plots combined. Species composition 
+              overlap is a rough index, and expressed as the ratio between the 
+              minimum in common relative to the maximum in common that could 
+              have been.</h5>"))
+  
+})
+
 
 
 
@@ -184,6 +200,7 @@ fig5 <- reactive({
       legend.position="top",
       panel.grid.major.x = element_blank(),
       panel.grid.minor.x = element_blank(),
+      axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)
       #rect = element_blank()
     ) 
   
@@ -197,6 +214,21 @@ output$fig5 <- renderPlot({
   fig5()
   
 })
+
+
+
+output$fig5_caption <- renderUI({
+  req(input$SelectVar)
+  HTML(paste0("<h5>Figure 5. Overall dead standing species composition (% of 
+              total dead merch volume reported in Table 3) of ground samples, 
+              for both GRID (left) and Phase 2 (right) sample designs. Species 
+              percent is computed from the summed dead merch volume (m3/ha) by 
+              species of all plots combined. The inventory dead volume is 
+              modeled primarily as Mountain Pine Beetle mortality, and therefore 
+              assumed 100% allocated to PL.</h5>"))
+  
+})
+
 
 
 fig6 <- reactive({
@@ -257,6 +289,20 @@ output$fig6 <- renderPlot({
 })
 
 
+output$fig6_caption <- renderUI({
+  req(input$SelectVar)
+  HTML(paste0("<h5>Figure 6. Scatter plots of ground to inventory age (top), 
+              height (middle), and volume (bottom), for grid samples (left) and 
+              Phase 2 samples (right), colour-themed by inventory leading 
+              species group. Each graph also includes overlays of the computed 
+              ratio of means (red line) and 1:1 reference (grey line).</h5>"))
+  
+})
+
+
+
+
+
 stdcode_text <- reactive({
   
   stdcode_text <- paste0("<p>Inventory standards of data collection vary across 
@@ -303,10 +349,13 @@ fig7 <- reactive({
                       labels = as_labeller(c("V" = "Full VRI", "I" = "Incomplete VRI",
                                              "F" = "FIP Rollover", "L" = "LVI")),
                       drop = FALSE) +
-    labs(x = "", y = "") +
+    labs(x = "", y = "",
+         caption = "Figure 7. Inventory standard code as a % of total ground samples by design.") +
     theme(legend.title = NULL,
           rect = element_blank(),
-          panel.grid.major.y = element_blank(),)
+          panel.grid.major.y = element_blank(),
+          plot.caption = element_text(hjust = 0, size=15, face = "bold"),
+          plot.caption.position = "plot")
   
   return(fig7)
   

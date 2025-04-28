@@ -56,16 +56,29 @@ sample_tsa30 <- reactive({
   # *separate computation of rom for TSA30 phase2 samples;
   # *samples selected in two subpopulations (in IFPA, out IFPA);
   # *first analyze overall;
+  #sample_tsa30 <- sample_data %>%
+  #  filter(CLSTR_ID %in% tsa30_ci()) %>%
+  #  mutate(proj_id = sub("_.*", "", SAMPLE_SITE_NAME),
+  #         stratum = ifelse(proj_id == '0301', 'IFPA-OUT', 'IFPA-IN'),
+  #         strat_area = ifelse(proj_id == '0301', 750000, 100000),
+  #         strat_n = ifelse(proj_id == '0301', 87, 50),
+  #         t_area_vt = 750000 + 100000,
+  #         weight =  strat_area/(strat_n*t_area_vt)) %>%
+  #  select(CLSTR_ID, Design, 
+  #         stratum, strat_area, strat_n, t_area_vt, weight)
+  
   sample_tsa30 <- sample_data %>%
     filter(CLSTR_ID %in% tsa30_ci()) %>%
     mutate(proj_id = sub("_.*", "", SAMPLE_SITE_NAME),
            stratum = ifelse(proj_id == '0301', 'IFPA-OUT', 'IFPA-IN'),
            strat_area = ifelse(proj_id == '0301', 750000, 100000),
-           strat_n = ifelse(proj_id == '0301', 87, 50),
-           t_area_vt = 750000 + 100000,
+           t_area_vt = 750000 + 100000) %>%
+    group_by(stratum) %>%
+    mutate(strat_n = n_distinct(CLSTR_ID),
            weight =  strat_area/(strat_n*t_area_vt)) %>%
     select(CLSTR_ID, Design, 
            stratum, strat_area, strat_n, t_area_vt, weight)
+  
   
   return(sample_tsa30)
   

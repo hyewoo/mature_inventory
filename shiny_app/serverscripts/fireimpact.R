@@ -55,11 +55,14 @@ fig8 <- reactive({
       ) +
       scale_x_discrete(drop = F) +
       labs(x = "Wildfire Season", y = "# Ground Samples",
-           title = "Ground Samples Impacted by Recent Wildfires") +
+           title = "Ground Samples Impacted by Recent Wildfires",
+           caption = "Figure 8. Number of ground samples impacted by widfires, grouped \nby percent basal area mortality.") +
       theme(rect = element_blank(),
             panel.grid.minor.y = element_blank(),
             panel.grid.major.x = element_blank(),
-            panel.grid.minor.x = element_blank())
+            panel.grid.minor.x = element_blank(),
+            plot.caption = element_text(hjust = 0, size=15, face = "bold"),
+            plot.caption.position = "plot")
     
     
   } else {
