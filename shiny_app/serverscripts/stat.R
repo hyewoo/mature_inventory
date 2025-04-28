@@ -265,18 +265,18 @@ bias_comp <- reactive({
                             area and volume attributes are assessed by design 
                             type.</p>
                        
-                       <ul><li><u>Total Bias</u> = Ground measurement minus 
-                       model projection (based on inventory input attributes). 
-                       Assesses the total error between ground sample 
-                       measurement & VDYP growth model projection.</li>
+  <ul><li><u>Total Bias</u> = Ground measurement minus 
+  model projection (based on inventory input attributes). 
+  Assesses the total error between ground sample 
+  measurement & VDYP growth model projection.</li>
                        
-                       <li><u>Model Bias</u> = Ground measurement minus model 
-                       projection (based on ground sample input attributes). 
-                       Assesses the error due to the growth model VDYP.</li>
+  <li><u>Model Bias</u> = Ground measurement minus model 
+  projection (based on ground sample input attributes). 
+  Assesses the error due to the growth model VDYP.</li>
                        
-                       <li><u>Attribute Bias</u> = Total Bias minus Model Bias. 
-                       Assesses the error due to the inventory classification 
-                       attributes.</li></ul></br>")
+  <li><u>Attribute Bias</u> = Total Bias minus Model Bias. 
+  Assesses the error due to the inventory classification 
+  attributes.</li></ul></br>")
   return(bias_comp)
 })
 
@@ -351,6 +351,14 @@ output$fig3 <- renderPlot({
 })
 
 
+
+
+output$fig3_caption <- renderUI({
+  req(input$SelectVar)
+  HTML(paste0("<h5>Figure 3. Components of Bias (total, model, attribute), for 
+              Basal Area (left graph) and Volume (right graph), by ground sample design.</h5>"))
+  
+})
 
 
 fig3_1 <- reactive({

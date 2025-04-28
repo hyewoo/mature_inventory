@@ -91,6 +91,12 @@ ui <- dashboardPage(
           margin-bottom: 0px;
           padding-bottom: 5px;
         }
+        
+        h5 {
+    font-family: Arial, sans-serif;
+    font-weight: bold;  /* 400 */
+    color: black;
+  }
       '))),
       
       box(title ="Note: This site is currently under development.", 
@@ -152,6 +158,7 @@ ui <- dashboardPage(
                         uiOutput('overview_header'),
                         uiOutput("description"),
                         br(),
+                        uiOutput("samplemap_caption"),
                         leafletOutput("samplemap"),
                         #br(),
                         #uiOutput("overviewflex"),
@@ -159,20 +166,23 @@ ui <- dashboardPage(
                ),
                
                tabPanel(title = "Summary of Key Results",
-                        h4("Sample Size & Measurement Year by Ground Sample Design"),
+                        #h4("Sample Size & Measurement Year by Ground Sample Design"),
+                        br(),
                         uiOutput("samplesize"),
+                        br(),
                         fluidRow(
                           column(6,
-                                 h4("Leading Species Agreement (Inventory vs. Ground)"),
+                                 #h4("Leading Species Agreement (Inventory vs. Ground)"),
                                  uiOutput("spcagree1"),
                                  br()),
                           column(6,
-                                 h4("Overall Species Agreement (Inventory vs. Ground)"),
+                                 #h4("Overall Species Agreement (Inventory vs. Ground)"),
                                  uiOutput("spcagree2"),
                                  br())
                         ),
                         
-                        h4("Listing of those Attributes where Ground: Inventory ratio of means are practically different (Y) or not practically different (N) from 1.0. Attributes which are not listed here have inconclusive (I) results."),
+                        #h4("Listing of those Attributes where Ground: Inventory ratio of means are practically different (Y) or not practically different (N) from 1.0. Attributes which are not listed here have inconclusive (I) results."),
+                        uiOutput("test_caption"),
                         fluidRow(
                           column(6,
                                  br(),
@@ -187,6 +197,7 @@ ui <- dashboardPage(
                                  plotOutput("fig2", height = "600px"),
                                  br()),
                         ),
+                        uiOutput("rope_desc"),
                         br(),
                ),
                tabPanel(title = "Stand Summaries",
@@ -204,7 +215,6 @@ ui <- dashboardPage(
                
                "Components of Bias",
                tabPanel(title = "Model vs Attribute Bias",
-                        
                         uiOutput("bias_comp"),
                         br(),
                         plotOutput("fig3", width = "800px", height = "300px"),
@@ -213,7 +223,9 @@ ui <- dashboardPage(
                                  uiOutput("fig3_1")),
                           column(6,
                                  uiOutput("fig3_2"))
-                        )
+                        ),
+                        uiOutput("fig3_caption"),
+                        br(),
                ),
                
                "Ground vs. Inventory",
@@ -228,13 +240,17 @@ ui <- dashboardPage(
                tabPanel(title = "Overall Species",
                         
                         plotOutput("fig4", width = "800px", height = "400px"),
+                        uiOutput("fig4_caption"),
                         br(),
-                        plotOutput("fig5", width = "800px", height = "400px")
+                        plotOutput("fig5", width = "800px", height = "400px"),
+                        uiOutput("fig5_caption"),
+                        br()
                ),
                tabPanel(title = "Other Attributes",
                         uiOutput("scatter_text"),
                         br(),
                         plotOutput("fig6", width = "800px", height = "1000px"),
+                        uiOutput("fig6_caption"),
                         br(),
                ),
                
@@ -300,12 +316,14 @@ ui <- dashboardPage(
                                  DT::dataTableOutput('dam_table'))
                         ),
                         br(),
+                        br(),
                         uiOutput('damsevtable'),
                         br()
                ),
                tabPanel(title = "Reference",
                         h4("Reference for Analyses of Past VRI Phase II / VPIP Projects"),
-                        uiOutput("ref"),
+                        #uiOutput("ref"),
+                        dataTableOutput("ref"),
                         br()
                ),
                

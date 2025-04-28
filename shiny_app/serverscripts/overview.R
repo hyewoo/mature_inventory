@@ -25,6 +25,13 @@ output$description <- renderUI({
 })
 
 
+output$samplemap_caption <- renderUI({
+  req(input$SelectVar)
+  HTML(paste0("<h5>Figure 1. Overview map of ",title(), 
+              ", with ground sample plot locations colour-coded by sample design.</h5>"))
+  
+})
+
 
 samplemap <- reactive({
   req(input$SelectVar)
@@ -144,6 +151,10 @@ samplesize <- reactive({
                "max_meas_yr" = "Last measured")) %>%
     bold(part = 'header', bold = TRUE) %>%
     colformat_num(j = 4, big.mark = "") %>%
+    set_caption(as_paragraph(
+      as_b(as_chunk("Sample Size & Measurement Year by Ground Sample Design"))),
+      fp_p = officer::fp_par(text.align = "left", padding = 3),
+      align_with_table = FALSE) %>%
     autofit()
   
   
@@ -169,11 +180,16 @@ correct_sp_lead <- reactive({
   corsp_flex <- corsp_flex %>%
     mk_par(
       j = "correct_ls",
-      value = as_paragraph(as_chunk(correct_ls, formatter = fmt_pct)))
+      value = as_paragraph(as_chunk(correct_ls, formatter = fmt_pct))) %>%
+    align(align = "center", part = "all")
   
   corsp_flex <- delete_part(corsp_flex, part = "header") %>%
     border_remove() %>%
-    autofit()
+    set_caption(as_paragraph(
+      as_b(as_chunk("Leading Species Agreement \n(Inventory vs. Ground)"))),
+      fp_p = officer::fp_par(text.align = "left", padding = 3),
+      align_with_table = FALSE) %>%
+    width(., width = 1.5)
   
   return(corsp_flex)
   
@@ -218,11 +234,17 @@ corsp_vol_flex <- reactive({
   corsp_vol_flex <- corsp_vol_flex %>%
     mk_par(
       j = "correct_pct",
-      value = as_paragraph(as_chunk(correct_pct, formatter = fmt_pct)))
+      value = as_paragraph(as_chunk(correct_pct, formatter = fmt_pct))) %>%
+    align(align = "center", part = "all")
   
   corsp_vol_flex <- delete_part(corsp_vol_flex, part = "header") %>%
     border_remove() %>%
-    autofit()
+    set_caption(as_paragraph(
+      as_b(as_chunk("Overall Species Agreement \n(Inventory vs. Ground)"))),
+      fp_p = officer::fp_par(text.align = "left", padding = 3),
+      align_with_table = FALSE) %>%
+    width(., width = 1.5)
+    #autofit()
   
   return(corsp_vol_flex)
   
@@ -267,8 +289,11 @@ fig2 <- reactive({
       'ht'="Height",
       'vol'="Net Merchantable Volume"
     ))) +
-    labs(x = "", y = "ROM", colour = NULL) +
+    labs(x = "", y = "ROM", colour = NULL,
+         caption = 'Figure 2. Overall Ratio of means (ground/inventory), \n95% confidence interval, & ROPE* interval for the \nlive attributes age, height, basal area & volume, \nacross each sample design.') +
     theme(
+      plot.caption = element_text(hjust = 0, size=15, face = "bold"),
+      plot.caption.position = "plot",
       legend.position = "top",
       legend.title = NULL,
       axis.ticks = element_blank(),
@@ -289,6 +314,17 @@ output$fig2 <- renderPlot({
   
 })
 
+
+output$rope_desc <- renderUI({
+  req(input$SelectVar)
+  HTML("<p style='font-size:12px ;face=arial'>*For those strata with a least 8 observations, a region of practical 
+       equivalence (ROPE) is pre-determined at 0.9-1.1 to assess if there is a 
+       practical difference with the attribute assessed. A practical difference 
+       (Y) occurs when the ratio-of-means (ROM) confidence interval (CI) sits 
+       entirely outside the ROPE, no practical difference (N) occurs when the 
+       ROM CI is entirely within the ROPE, all other situations are inconclusive (I).</p>")
+  
+})
 
 
 test1 <- reactive({
@@ -425,4 +461,15 @@ test3 <- reactive({
 
 output$test3 <- renderUI({
   htmltools_value(test3())
+})
+
+
+
+output$test_caption <- renderUI({
+  req(input$SelectVar)
+  HTML(paste0("<h5>Listing of those Attributes where Ground:Inventory ratio of 
+              means are practically different (Y) or not practically different 
+              (N) from 1.0. Attributes which are not listed here have 
+              inconclusive (I) results.</h5>"))
+  
 })
