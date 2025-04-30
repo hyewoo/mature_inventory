@@ -12,7 +12,7 @@ description <- reactive({
   text <- paste0("<p>A comparison of total age, height, basal area, net 
                  merchantable volume and species, between ground sample data 
                  maintained by the B.C. Forest Analysis and Inventory Branch, 
-                 vs the 2021 Forest Vegetation Composite Rank 1 Layer (Inventory), 
+                 vs the 2023 Forest Vegetation Composite Rank 1 Layer (Inventory), 
                  for design-based ground samples in the mature inventory 
                  population (vegetated treed >50yr old) in <b>", 
                  title(),"</b>.</p>  ")
@@ -46,7 +46,11 @@ samplemap <- reactive({
       select(SITE_IDENTIFIER, SAMPLE_ESTABLISHMENT_TYPE, visit_num, visit_year, BECsub,
              MGMT_UNIT, TSA_DESC, BEC_ZONE, BEC_SBZ, BEC_VAR, GRID_SIZE, Design, design_icon,
              BC_ALBERS_X, BC_ALBERS_Y, Latitude, Longitude) %>% 
-      distinct()
+      distinct() %>%
+      left_join(lead_vol %>% 
+                  filter(CLSTR_ID %in% clstr_id()) %>%
+                  select(SITE_IDENTIFIER, SPECIES, AGET_TLSO, NTWB_NVAF_LS),
+                by = "SITE_IDENTIFIER")
     
     location <- st_as_sf(x = location,                         
                          coords = c("Longitude", "Latitude"),
@@ -91,14 +95,23 @@ samplemap <- reactive({
       addMarkers(data = location,
                  icon =  ~plotIcons[design_icon],
                  popup = paste(sep = "<br/>",
-                               paste(paste("<b>Management unit</b> - ", location$MGMT_UNIT, "<br/>"),
-                                     paste("<b>Sample ID</b> - ", location$SITE_IDENTIFIER, "<br/>"),
-                                     paste("<b>Sample type</b> - ", location$SAMPLE_ESTABLISHMENT_TYPE, "<br/>"),
-                                     paste("<b>BEC zone</b> - ", location$BEC_ZONE, "<br/>"), 
-                                     paste("<b>BEC subzone</b> - ", location$BEC_SBZ, "<br/>"),
-                                     paste("<b>BEC variant</b> - ", location$BEC_VAR, "<br/>"), 
-                                     paste("<b># of measures</b> - ", location$visit_num, "<br/>"),
-                                     paste("<b>Visited year</b> - ",location$visit_year, "<br/>")))) %>%
+                               paste(paste("<b>Management unit</b>: ", location$MGMT_UNIT, "<br/>"),
+                                     paste("<b>Sample ID</b>: ", location$SITE_IDENTIFIER, "<br/>"),
+                                     paste("<b>Sample type</b>: ", location$SAMPLE_ESTABLISHMENT_TYPE, "<br/>"),
+                                     #paste("<b>BEC zone</b> - ", location$BEC_ZONE, "<br/>"), 
+                                     #paste("<b>BEC subzone</b> - ", location$BEC_SBZ, "<br/>"),
+                                     #paste("<b>BEC variant</b> - ", location$BEC_VAR, "<br/>"), 
+                                     paste0("<b>BEC/subzone/variant</b>: ", location$BEC_ZONE, "/",
+                                            location$BEC_SBZ, "/",ifelse(is.na(location$BEC_VAR), "-", 
+                                                                         location$BEC_VAR),"<br/>"), 
+                                     #paste("<b>BEC subzone</b> - ", location$BEC_SBZ, "<br/>"),
+                                     #paste("<b>BEC variant</b> - ", location$BEC_VAR, "<br/>"), 
+                                     paste("<b># of measures</b>: ", location$visit_num, "<br/>"),
+                                     paste("<b>Visited year</b>: ",location$visit_year, "<br/>"),
+                                     paste("<b>Leading species</b>: ",location$SPECIES, "<br/>"),
+                                     paste("<b>Total age of leading species</b>: ",location$AGET_TLSO, "(yrs)<br/>"),
+                                     paste("<b>Live total volume</b>: ",round(location$NTWB_NVAF_LS, 1), 
+                                           "(cubic m)<br/>")))) %>%
       addLegend(data = location,
                 position = "bottomright",
                 pal = pal, values = ~Design,
@@ -428,7 +441,7 @@ test3 <- reactive({
   invspc_vol_dat <- invspc_vol_dat()
   
   test3 <- invspc_vol_dat %>%
-    filter(sigrope_vol %in% c("Y", "N")) %>%
+    filter(sigrope_vol %in% c("Y", "N") & n >= 8) %>%
     select(Design, SPC_GRP_INV, n, grd_vol, inv_vol, 
            rom_vol, l95rom_vol, u95rom_vol, sigrope_vol) %>%
     mutate(var = "Volume (m3/ha)",

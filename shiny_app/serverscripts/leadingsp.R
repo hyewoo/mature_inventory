@@ -25,7 +25,8 @@ ld_table1 <- reactive({
   LD_data <- lead_vol %>%
     filter(CLSTR_ID %in% clstr_id()) 
   
-  LD_table <- proc_freq(LD_data[LD_data$Design == "GRID",], "SPC_GRP2", "SPC_GRP1",
+  LD_table <- proc_freq(#LD_data[LD_data$Design == "GRID",], "SPC_GRP2", "SPC_GRP1",
+                        LD_data[LD_data$Design == "GRID",], "SPECIES_INV", "SPECIES",
                         include.row_total = T,
                         include.row_percent = F,
                         include.column_total = T,
@@ -46,8 +47,10 @@ ld_table1 <- reactive({
   
   LD_table <- labelizor(x = LD_table, 
                         part = "header", 
-                        labels = c("SPC_GRP2" = "Inv", 
-                                   "SPC_GRP1" = "Grd"))  %>%
+                        #labels = c("SPC_GRP2" = "Inv", 
+                        #           "SPC_GRP1" = "Grd")
+                        labels = c("SPECIES_INV" = "Inventory", 
+                                   "SPECIES" = "Ground"))  %>%
     align(align = "left", part = "header") %>%
     autofit()
   
@@ -71,7 +74,8 @@ ld_table2 <- reactive({
   LD_data <- lead_vol %>%
     filter(CLSTR_ID %in% clstr_id()) 
   
-  LD_table2 <- proc_freq(LD_data[LD_data$Design == "PHASE2",], "SPC_GRP2", "SPC_GRP1",
+  LD_table2 <- proc_freq(#LD_data[LD_data$Design == "PHASE2",], "SPC_GRP2", "SPC_GRP1",
+                         LD_data[LD_data$Design == "PHASE2",], "SPECIES_INV", "SPECIES",
                          include.row_total = T,
                          include.row_percent = F,
                          include.column_total = T,
@@ -92,8 +96,10 @@ ld_table2 <- reactive({
   
   LD_table2 <- labelizor(x = LD_table2, 
                          part = "header", 
-                         labels = c("SPC_GRP2" = "Inv", 
-                                    "SPC_GRP1" = "Grd"))  %>%
+                         #labels = c("SPC_GRP2" = "Inv", 
+                         #           "SPC_GRP1" = "Grd")
+                         labels = c("SPECIES_INV" = "Inventory", 
+                                    "SPECIES" = "Ground"))  %>%
     align(align = "left", part = "header") %>%
     autofit()
   
@@ -128,6 +134,16 @@ spcomp <- reactive({
 fig4 <- reactive({
   
   spcomp <- spcomp()
+  correc_sp_vol <- correc_sp_vol() 
+  
+  correc_sp_vol <- correc_sp_vol %>%
+    mutate(text = paste0("Overall Species Composition Overlap = ", correct_pct*100, "%")) %>%
+    select(-correct_pct) %>%
+    pivot_wider(names_from = Design,
+                values_from = text)
+    #mutate(ymax = ceiling(max(spcomp$livevolperc, na.rm = T)/ 5) * 5/100,
+    #       ytext = ymax * 0.99,
+    #       text = paste0("Overall Species Composition Overlap = ", correct_pct*100, "%"))
   
   fig4 <- spcomp %>%
     mutate(Design = factor(Design, levels = c("GRID", "PHASE2"))) %>%
@@ -135,11 +151,18 @@ fig4 <- reactive({
     geom_bar(aes(x = SPECIES, y = livevolperc/100, group = source, fill = source), 
              position = position_dodge2(preserve = "single"), width = 0.7, stat = "identity") +
     facet_wrap(~Design, ncol = 2, drop=FALSE) +
+    #coord_cartesian(clip="off") +
+    #geom_text(
+    #  data=correc_sp_vol, 
+    #  mapping=aes(y=ymax, x=1, label=text), hjust=0,
+    #  fontface="bold", color="black"
+    #) +
     scale_fill_manual(values = c("steelblue", "#B4464B"), name = NULL) +
     scale_x_discrete(drop=T) +
     scale_y_continuous(labels = scales::label_percent(), expand = expansion(mult = c(0, 0.1))) +
     labs(x = "Species", y = "% of live net merch vol",
-         title = "Live Species Composition - GRID / Phase 2") +
+         title = "Live Species Composition - GRID / Phase 2",
+         caption = paste0()) +
     theme(
       panel.grid.major.y = element_line(color = 'darkgray'), 
       plot.caption = element_text(hjust=0, size=rel(1.2)),
@@ -162,6 +185,36 @@ output$fig4 <- renderPlot({
   
 })
 
+fig4_flex <- reactive({
+  
+  correc_sp_vol <- correc_sp_vol() 
+  
+  correc_sp_vol <- correc_sp_vol %>%
+    mutate(text = paste0("Overall Species Composition Overlap = ", correct_pct*100, "%")) %>%
+    select(-correct_pct) %>%
+    pivot_wider(names_from = Design,
+                values_from = text)
+  
+  fig4_flex <- flextable(correc_sp_vol) %>%
+    #bold(part = 'all', bold = TRUE) %>%
+    #align(j = 1, align = "center", part = "all") %>%
+    align(align = "right", part = "all") %>%
+    align(j = 1, align = "center", part = "all") %>%
+    delete_part(part = "header") %>%
+    border_remove() %>%
+    width(., width = 3.7)
+    #autofit()
+  
+  return(fig4_flex)
+  
+})
+
+
+output$fig4_flex <- renderUI({
+  req(input$SelectVar)
+  htmltools_value(fig4_flex())
+})
+
 
 output$fig4_caption <- renderUI({
   req(input$SelectVar)
@@ -182,6 +235,7 @@ output$fig4_caption <- renderUI({
 fig5 <- reactive({
   
   spcomp <- spcomp()
+  correc_sp_vol <- correc_sp_vol()
   
   fig5 <- spcomp %>%
     mutate(Design = factor(Design, levels = c("GRID", "PHASE2"))) %>%
@@ -238,8 +292,9 @@ fig6 <- reactive({
   
   scatter <- lead_vol_dat %>%
     left_join(lead_vol %>% select(CLSTR_ID, SPECIES_INV, SPC_GRP2), by = "CLSTR_ID") %>%
-    left_join(top3spc %>% select(-n), by = c('Design', 'SPC_GRP2')) %>%
-    mutate(SPC_GRP_INV = ifelse(!is.na(top3) & top3 == "Y", SPC_GRP2, "OTH"),
+    #left_join(top3spc %>% select(-n), by = c('Design', 'SPECIES_INV')) %>%
+    mutate(#SPC_GRP_INV = ifelse(!is.na(top3) & top3 == "Y", SPECIES_INV, "OTH"),
+           SPC_GRP_INV = ifelse(SPECIES_INV %in% top3spc$SPECIES_INV, SPECIES_INV, 'OTH'),
            Design = factor(Design, levels = c("GRID", "PHASE2"))) %>%
     select(Design, CLSTR_ID, SPECIES_INV, SPC_GRP2, SPC_GRP_INV,
            inv_age = PROJ_AGE_ADJ, inv_ht = vdyp_dom_ht, inv_vol = vdyp_vol_dwb, 
