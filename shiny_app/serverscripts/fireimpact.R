@@ -214,7 +214,11 @@ firemap <- reactive({
       select(SITE_IDENTIFIER, SAMPLE_ESTABLISHMENT_TYPE, visit_num, visit_year, BECsub,
              MGMT_UNIT, TSA_DESC, BEC_ZONE, BEC_SBZ, BEC_VAR, GRID_SIZE, Design, design_icon,
              BC_ALBERS_X, BC_ALBERS_Y, Latitude, Longitude, fire_year, ntwb_mortality) %>% 
-      distinct()
+      distinct() %>%
+      left_join(lead_vol %>% 
+                  filter(CLSTR_ID %in% clstr_id()) %>%
+                  select(SITE_IDENTIFIER, SPECIES, AGET_TLSO, NTWB_NVAF_LS),
+                by = "SITE_IDENTIFIER")
     
     location <- st_as_sf(x = location,                         
                          coords = c("Longitude", "Latitude"),
@@ -238,23 +242,21 @@ firemap <- reactive({
       addPolygons(data = firemap, stroke = TRUE, color = "#FF7F00", weight = 2,
                   opacity = 0.9, fill = TRUE, fillOpacity = 0.2,
                   popup = paste(sep = "<br/>",
-                                paste(paste("<b>Fire number</b> - ", firemap$FIRE_NO, "<br/>"),
-                                      paste("<b>Fire year</b> - ", firemap$FIRE_YEAR, "<br/>"),
-                                      paste("<b>Fire size</b> - ", firemap$SIZE_HA, " ha<br/>"),
-                                      paste("<b>Fire cause</b> - ", firemap$FIRE_CAUSE, "<br/>")))) %>%
+                                paste(paste("<b>Fire number</b>: ", firemap$FIRE_NO, "<br/>"),
+                                      paste("<b>Fire year</b>: ", firemap$FIRE_YEAR, "<br/>"),
+                                      paste("<b>Fire size</b>: ", firemap$SIZE_HA, " ha<br/>"),
+                                      paste("<b>Fire cause</b>: ", firemap$FIRE_CAUSE, "<br/>")))) %>%
       addAwesomeMarkers(data = location_fire,
                  icon = fireicon,
                  popup = paste(sep = "<br/>",
-                               paste(paste("<b>Management unit</b> - ", location_fire$MGMT_UNIT, "<br/>"),
-                                     paste("<b>Sample ID</b> - ", location_fire$SITE_IDENTIFIER, "<br/>"),
-                                     paste("<b>Sample type</b> - ", location_fire$SAMPLE_ESTABLISHMENT_TYPE, "<br/>"),
-                                     paste("<b>BEC zone</b> - ", location_fire$BEC_ZONE, "<br/>"), 
-                                     paste("<b>BEC subzone</b> - ", location_fire$BEC_SBZ, "<br/>"),
-                                     paste("<b>BEC variant</b> - ", location_fire$BEC_VAR, "<br/>"), 
-                                     paste("<b># of measures</b> - ", location_fire$visit_num, "<br/>"),
+                               paste(paste("<b>Management unit</b>: ", location_fire$MGMT_UNIT, "<br/>"),
+                                     paste("<b>Sample ID</b>: ", location_fire$SITE_IDENTIFIER, "<br/>"),
+                                     paste("<b>Sample type</b>: ", location_fire$SAMPLE_ESTABLISHMENT_TYPE, "<br/>"),
+                                     paste0("<b>BEC/subzone/variant</b>: ", location$BEC_ZONE, "/",location$BEC_SBZ, "/",ifelse(is.na(location$BEC_VAR), "-", location$BEC_VAR),"<br/>"), 
+                                     paste("<b># of measures</b>: ", location_fire$visit_num, "<br/>"),
                                      #paste("<b>Visited year</b> - ",location_fire$visit_year, "<br/>"),
-                                     paste("<b>Fire year</b> - ", location_fire$fire_year, "<br/>"),
-                                     paste("<b>Volume mortality</b> - ",location_fire$ntwb_mortality*100, "%<br/>")))) %>%
+                                     paste("<b>Fire year</b>: ", location_fire$fire_year, "<br/>"),
+                                     paste("<b>Volume mortality</b>: ",location_fire$ntwb_mortality*100, "%<br/>")))) %>%
       addLegend(data = firemap,
                 position = "bottomright",
                 colors = "#FF7F00", 
@@ -265,7 +267,7 @@ firemap <- reactive({
                 opacity = 0.5) %>%
       addLegend(data = location_fire,
                 position = "bottomright",
-                value=iconSet,colors = "darkred",labels='Post-fire sample', 
+                value=iconSet,colors = "darkred",labels='Fire impact-adjusted samples', 
                 #pch = ,
                 title = NULL,
                 opacity = 1) 

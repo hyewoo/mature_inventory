@@ -80,7 +80,7 @@ upr_limit = 1.1
 tsa_list <- sort(unique(sample_data %>% 
                           #filter(TSA_filter == "Y") %>% 
                           group_by(TSA_DESC) %>% 
-                          filter(n() > 10) %>% 
+                          filter(n() >= 8) %>% 
                           pull(TSA_DESC)))
 
 

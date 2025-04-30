@@ -105,22 +105,45 @@ correct_ls <- reactive({
 top3spc <- reactive({
   req(input$SelectVar)
 
+#top3spc <- lead_vol %>%  
+#  filter(CLSTR_ID %in% clstr_id()) %>%
+#  filter(!is.na(SPC_GRP2)) %>%  
+#  group_by(Design, SPC_GRP2) %>%
+#  count() %>% 
+#  group_by(Design) %>%
+#  top_n(3) %>%
+#  arrange(Design, desc(n), desc(SPC_GRP2)) %>%
+#  slice_head(n = 3) %>%
+#  mutate(top3 = "Y") %>%
+#  data.table
+#  #group_by(SPC_GRP2) %>%
+#  #count() %>% 
+#  #ungroup() %>% 
+#  #top_n(3) %>%
+#  #pull(SPC_GRP2)
+
 top3spc <- lead_vol %>%  
   filter(CLSTR_ID %in% clstr_id()) %>%
-  filter(!is.na(SPC_GRP2)) %>%  
-  group_by(Design, SPC_GRP2) %>%
+  filter(!is.na(SPECIES_INV)) %>%  
+  group_by(Design, SPECIES_INV) %>%
   count() %>% 
-  group_by(Design) %>%
-  top_n(3) %>%
-  arrange(Design, desc(n), desc(SPC_GRP2)) %>%
-  slice_head(n = 3) %>%
-  mutate(top3 = "Y") %>%
-  data.table
-  #group_by(SPC_GRP2) %>%
-  #count() %>% 
-  #ungroup() %>% 
-  #top_n(3) %>%
-  #pull(SPC_GRP2)
+  filter(n >= 8) %>% 
+  mutate(top3 = "Y")
+
+if (nrow(top3spc) < 3){
+  
+  top3spc <- lead_vol %>%  
+    filter(CLSTR_ID %in% clstr_id()) %>%
+    filter(!is.na(SPECIES_INV)) %>%  
+    group_by(Design, SPECIES_INV) %>%
+    count() %>% 
+    group_by(Design) %>%
+    top_n(3) %>%
+    arrange(Design, desc(n), desc(SPECIES_INV)) %>%
+    slice_head(n = 3) %>%
+    mutate(top3 = "Y") %>%
+    data.table
+}
 
 return(top3spc)
 
@@ -385,8 +408,8 @@ invspc_vol_dat <- reactive({
   
   top3spc <- top3spc()
   
-  top3_grid <- top3spc[Design == "GRID",]$SPC_GRP2
-  top3_phase2 <- top3spc[Design == "PHASE2",]$SPC_GRP2
+  #top3_grid <- top3spc[Design == "GRID",]$SPECIES_INV
+  #top3_phase2 <- top3spc[Design == "PHASE2",]$SPECIES_INV
   
   #invspc_vol <- lead_vol %>%
   #  filter(CLSTR_ID %in%  clstr_id()) %>% 
@@ -398,8 +421,10 @@ invspc_vol_dat <- reactive({
   
   invspc_vol <- lead_vol %>%
     filter(CLSTR_ID %in%  clstr_id()) %>% 
-    left_join(top3spc %>% select(-n), by = c('Design', 'SPC_GRP2')) %>%
-    mutate(SPC_GRP_INV = ifelse(!is.na(top3) & top3 == "Y", SPC_GRP2, "OTH")) %>%
+    left_join(top3spc %>% select(-n), by = c('Design', 'SPECIES_INV')) %>%
+    mutate(#SPC_GRP_INV = ifelse(!is.na(top3) & top3 == "Y", SPC_GRP2, "OTH"),
+      #SPC_GRP_INV = ifelse(!is.na(top3) & top3 == "Y", SPECIES_INV, "OTH"),
+      SPC_GRP_INV = ifelse(SPECIES_INV %in% top3spc$SPECIES_INV, SPECIES_INV, 'OTH')) %>%
     replace_na(list(NTWB_NVAF_LS = 0, vdyp_vol_dwb = 0)) %>%
     #rowwise() %>%
     #mutate(SPC_GRP_INV = case_when(Design == "GRID" & SPC_GRP2 %in% top3_grid ~ SPC_GRP2,
@@ -476,6 +501,40 @@ spc_vol_dat <- reactive({
 })
 
 
+correc_sp_vol <- reactive({
+  
+  spc_vol_dat <- spc_vol_dat()
+  
+  spc_vol_dat1 <- spc_vol_dat %>%
+    group_by(Design, source) %>%
+    reframe(
+      SPECIES = SPECIES,
+      livevolperc = livevol/sum(livevol, na.rm= T) * 100,
+      deadvolperc = deadvol/sum(deadvol, na.rm= T) * 100) %>%
+    data.table
+  
+  spc_vol_dat2 <- spc_vol_dat1 %>%
+    ungroup() %>%
+    group_by(Design) %>%
+    pivot_wider(names_from = source ,
+                values_from = c(livevolperc, deadvolperc)) %>%
+    replace(is.na(.), 0) %>%
+    ungroup() %>%
+    rowwise() %>%
+    mutate(livemin = min(livevolperc_Ground, livevolperc_Inventory),
+           livemax = max(livevolperc_Ground, livevolperc_Inventory)) %>%
+    group_by(Design) %>%
+    summarise(liveminsum = sum(livemin, na.rm = T),
+              livemaxsum = sum(livemax, na.rm = T)) %>%
+    mutate(correct_pct = round(liveminsum/livemaxsum, 3)) %>%
+    select(Design, correct_pct) %>%
+    data.table
+  
+  return(spc_vol_dat2)
+  
+})
+
+
 
 invspc_vol_tsa30 <- reactive({
   req(input$SelectVar)
@@ -483,14 +542,15 @@ invspc_vol_tsa30 <- reactive({
   if (input$SelectVar == "Fraser TSA"){
     
     top3spc <- top3spc()
-    top3_phase2 <- top3spc[Design == "PHASE2",]$SPC_GRP2
+    #top3_phase2 <- top3spc[Design == "PHASE2",]$SPECIES_INV
     
     sample_tsa30 <- sample_tsa30()
     
     tsa30_spcvol <- lead_vol %>%
       filter(CLSTR_ID %in%  tsa30_ci()) %>% 
-      left_join(top3spc %>% select(-n), by = c('Design', 'SPC_GRP2')) %>%
-      mutate(SPC_GRP_INV = ifelse(!is.na(top3) & top3 == "Y", SPC_GRP2, "OTH")) %>%
+      left_join(top3spc %>% select(-n), by = c('Design', 'SPECIES_INV')) %>%
+      mutate(#SPC_GRP_INV = ifelse(!is.na(top3) & top3 == "Y", SPC_GRP2, "OTH"),
+             SPC_GRP_INV = ifelse(SPECIES_INV %in% top3spc$SPECIES_INV, SPECIES_INV, 'OTH')) %>%
       replace_na(list(#NTWB_NVAF_LS = 0, 
                       vdyp_vol_dwb = 0)) %>%
       select(SITE_IDENTIFIER, CLSTR_ID, Design, SPC_GRP1, SPC_GRP2, 

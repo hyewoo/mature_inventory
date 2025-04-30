@@ -139,7 +139,7 @@ ui <- dashboardPage(
           column(3, offset = 1, selectInput(inputId = "SelectVar",
                                             label = "Select",
                                             choices = c(Choose = "", tsa_list)), 
-                 HTML("<font size='-1'>*only n&ge;10 are selectable.</font>")),
+                 HTML("<font size='-1'>*only n&ge;8 are selectable.</font>")),
           
           column(3, offset = 1, downloadButton("downloadReport", "Download report"), br(),
                  radioButtons("format", "Document format", c("HTML", "PDF"), inline = TRUE))
@@ -240,13 +240,14 @@ ui <- dashboardPage(
                tabPanel(title = "Overall Species",
                         
                         plotOutput("fig4", width = "800px", height = "400px"),
+                        uiOutput("fig4_flex"),
                         uiOutput("fig4_caption"),
                         br(),
                         plotOutput("fig5", width = "800px", height = "400px"),
                         uiOutput("fig5_caption"),
                         br()
                ),
-               tabPanel(title = "Other Attributes",
+               tabPanel(title = "Age, Height, and Volume",
                         uiOutput("scatter_text"),
                         br(),
                         plotOutput("fig6", width = "800px", height = "1000px"),

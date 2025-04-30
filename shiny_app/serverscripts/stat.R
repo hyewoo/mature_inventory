@@ -209,6 +209,7 @@ table4 <- reactive({
   table4 <- invspc_vol_dat1 %>%
     select(Design, SPC_GRP_INV, n, grd_vol, inv_vol, 
            rom_vol, l95rom_vol, u95rom_vol, sigrope_vol) %>%
+    distinct() %>%
     mutate(Design = factor(Design, levels = c("GRID", "PHASE2")),
            grd_vol = round(grd_vol, 1),
            inv_vol = round(inv_vol, 1),
@@ -239,7 +240,7 @@ table4 <- reactive({
                     sigrope_vol = "ROPE Test")) %>%
     bold(part = 'header', bold = TRUE) %>%
     set_caption(as_paragraph(
-      as_b(as_chunk("Table 4. Live standing volume by leading inventory species group, ROM (grd/inv), 95% confidence limits, and ROPE test. Species groups defined by the top three leading inventory species (by # samples), with 'OTH' comprising remaining species.")))) %>%
+      as_b(as_chunk("Table 4. Live standing volume by leading inventory species group, ROM (grd/inv), 95% confidence limits, and ROPE test. Species are listed when n ≥ 8 in any sampling design. When more than three species are present, those with n < 8 and the lowest counts are grouped under ‘OTH’.")))) %>%
     autofit()
   
   return(table4)
