@@ -19,7 +19,7 @@ lwr_limit = 0.9
 upr_limit = 1.1
 
 savepath <- ""
-savepath <- "D:/R/mature_inventory/files/rds/250422"
+savepath <- "D:/R/mature_inventory/files/rds/250429"
 
 
 ### 1) Import ISMC compiled ground sample data
@@ -268,7 +268,7 @@ sample_data4 <- sample_data3_5 %>%
                             Design == "PHASE2" & TSA == 18 & MEAS_YR %in% c(2012,2013) ~ "Y",
                             Design == "PHASE2" & TSA == 20 & MEAS_YR %in% c(2011,2012) ~ "Y",
                             Design == "PHASE2" & TSA == 22 & MEAS_YR %in% c(2006,2007,2008) & 
-                              substr(MGMT_UNIT, 1, 5) == "TSA22" & substr(SAMPLE_SITE_NAME, 1, 4) != '4721' ~ "Y",
+                              substr(MGMT_UNIT, 1, 5) == "TSA22" & !(substr(SAMPLE_SITE_NAME, 1, 4) %in% c('4721','022M')) ~ "Y",
                             Design == "PHASE2" & TSA == 22 & MEAS_YR %in% c(1997,1998,1999,2000,2006,2007,2008) &
                               substr(MGMT_UNIT, 1, 5) == "TFL49" & substr(SAMPLE_SITE_NAME, 1, 4) == '4721'~ "Y",
                             Design == "PHASE2" & TSA == 24 & MEAS_YR %in% c(2013,2014) ~ "Y",
@@ -410,7 +410,7 @@ saveRDS(sample_data7, paste0(savepath, "/sample_data.rds"))
 external_path2 <- "//sfp.idir.bcgov/s164/S63016/!Workgrp/Inventory/Compilation/ismc/external_inputs"
 
 VDYP_all <- fread(paste0(external_path2, 
-                         "/spatial_overlay/ISMC_VRI_Overlay/VDYP7/VDYP7_OUTPUT_YLDTBL_old.csv"))
+                         "/spatial_overlay/ISMC_VRI_Overlay/VDYP7/VDYP7_OUTPUT_YLDTBL.csv"))
 
 VDYP_input <- fread(paste0(external_path2, 
                            "/spatial_overlay/ISMC_VRI_Overlay/VDYP7/VDYP7_INPUT_LAYER.csv"))
@@ -423,17 +423,17 @@ VDYP_all <- VDYP_all %>%
   left_join(VDYP_input1_1 %>% select(FEATURE_ID, LAYER_ID = LAYER_LEVEL_CODE), 
             by = c("FEATURE_ID", "LAYER_ID"))
 
-VDYP_proj <- VDYP_all %>%
-  filter(FEATURE_ID %in% unique(sample_data7$FEATURE_ID_2022))
+#VDYP_proj <- VDYP_all %>%
+#  filter(FEATURE_ID %in% unique(sample_data7$FEATURE_ID_2022))
 
 #VDYP_proj1 <- VDYP_proj %>%
 #  left_join(sample_data7 %>% select(FEATURE_ID_2022, CLSTR_ID, BEC_ZONE, PROJ_AGE_ADJ),
 #            by = c("FEATURE_ID" = "FEATURE_ID_2022"))
 
 VDYP_proj1 <- sample_data7 %>%
-  select(FEATURE_ID_2022, LAYER_ID, CLSTR_ID, BEC_ZONE, SPECIES_CD_1, PROJ_AGE_ADJ) %>%
+  select(FEATURE_ID, LAYER_ID, CLSTR_ID, BEC_ZONE, SPECIES_CD_1, PROJ_AGE_ADJ) %>%
   mutate(LAYER_ID = as.character(LAYER_ID)) %>%
-  left_join(VDYP_proj, by = c("FEATURE_ID_2022" = "FEATURE_ID", "LAYER_ID"))
+  left_join(VDYP_all, by = c("FEATURE_ID", "LAYER_ID"))
 
 #VDYP_proj2 <- VDYP_proj1 %>% 
 #  select(CLSTR_ID, BEC_ZONE, FEATURE_ID, LAYER_ID, SPECIES_1_CODE, 
@@ -442,7 +442,7 @@ VDYP_proj1 <- sample_data7 %>%
 
 VDYP_proj2 <- VDYP_proj1 %>% 
   filter(!is.na(CLSTR_ID)) %>% 
-  select(CLSTR_ID, BEC_ZONE, FEATURE_ID_2022, LAYER_ID, SPECIES_CD_1, SPECIES_1_CODE, 
+  select(CLSTR_ID, BEC_ZONE, FEATURE_ID, LAYER_ID, SPECIES_CD_1, SPECIES_1_CODE, 
          PROJ_AGE_ADJ, PRJ_BA, PRJ_TPH, PRJ_TOTAL_AGE, PRJ_DOM_HT, PRJ_VOL_DWB) %>%
   mutate_at(vars(PRJ_BA, PRJ_TPH, PRJ_DOM_HT, PRJ_VOL_DWB), ~replace(., is.na(.), 0))
 
@@ -452,15 +452,15 @@ VDYP_proj2 <- VDYP_proj1 %>%
 
 vdyp_year <- VDYP_proj2 %>% 
   filter(!is.na(SPECIES_1_CODE)) %>% 
-  tidyr::expand(nesting(FEATURE_ID_2022, CLSTR_ID, LAYER_ID), PRJ_TOTAL_AGE = full_seq(PRJ_TOTAL_AGE, 1))
+  tidyr::expand(nesting(FEATURE_ID, CLSTR_ID, LAYER_ID), PRJ_TOTAL_AGE = full_seq(PRJ_TOTAL_AGE, 1))
 
 #VDYP_proj3 <- vdyp_year %>%
 #  left_join(VDYP_proj2, by = c("FEATURE_ID", "CLSTR_ID", "LAYER_ID", "PRJ_TOTAL_AGE")) %>%
 #  arrange(FEATURE_ID, CLSTR_ID, LAYER_ID, PRJ_TOTAL_AGE)
 
 VDYP_proj3 <- vdyp_year %>%
-  left_join(VDYP_proj2, by = c("FEATURE_ID_2022", "CLSTR_ID", "LAYER_ID", "PRJ_TOTAL_AGE")) %>%
-  arrange(FEATURE_ID_2022, CLSTR_ID, LAYER_ID, PRJ_TOTAL_AGE)
+  left_join(VDYP_proj2, by = c("FEATURE_ID", "CLSTR_ID", "LAYER_ID", "PRJ_TOTAL_AGE")) %>%
+  arrange(FEATURE_ID, CLSTR_ID, LAYER_ID, PRJ_TOTAL_AGE)
 
 VDYP_proj4 <- VDYP_proj3 %>% 
   filter(!is.na(CLSTR_ID)) %>% 

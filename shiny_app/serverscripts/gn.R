@@ -4,7 +4,7 @@ disclaimer <- reactive({
     "<p>Ground sample measurement dates (and compilations) range between 2004 
     and 2023.</p>","
 <p>In contrast the spatial inventory attributes (from the 2023 published 
-Forest Vegetation Composite Rank 1 Layer and projected to the end of 2021), 
+Forest Vegetation Composite Rank 1 Layer and projected to the end of 2023), 
 are adjusted back to the ground sample measurement year using VDYP7 Batch / 
 Console processing.</p>
 <p>Ground data include all available design-based CMI, VRI and supplemental 
