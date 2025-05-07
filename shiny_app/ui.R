@@ -126,7 +126,7 @@ ui <- dashboardPage(
   <label for="tsa" style="font-weight:normal;">By TSA</label><br>
   
   <input type="radio" id="bec" name="SelectCategory" value="BEC_ZONE" disabled>
-  <label for="bec" style="font-weight:normal;">By BEC</label><br>
+  <label for="bec" style="font-weight:normal;">By BEC zone</label><br>
   
   <input type="radio" id="tfl" name="SelectCategory" value="TFL" disabled >
   <label for="tfl" style="font-weight:normal;">By TFL</label>

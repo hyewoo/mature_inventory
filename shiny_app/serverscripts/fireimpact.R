@@ -24,7 +24,7 @@ firesample <- reactive({
   req(input$SelectVar)
   
   firesample <- sample_data %>%
-    filter(CLSTR_ID %in% clstr_id()) %>%
+    filter(CLSTR_ID %in% clstr_id_all()) %>%
     filter(!is.na(fire_year)) %>%
     select(fire_year, ba_mortality) %>%
     mutate(fire_year_f = factor(fire_year, 
@@ -205,7 +205,7 @@ firemap <- reactive({
   firemap <- if(nrow(firesample) > 0){
     
     location <- sample_data %>% 
-      filter(CLSTR_ID %in% clstr_id()) %>% 
+      filter(CLSTR_ID %in% clstr_id_all()) %>% 
       group_by(SITE_IDENTIFIER) %>% 
       mutate(#design = ifelse(SAMPLE_ESTABLISHMENT_TYPE %in% c("CMI", "NFI", "SUP"), "GRID", "PHASE2"), 
         #design_icon = ifelse(design == "GRID", 1, 2),
@@ -252,9 +252,14 @@ firemap <- reactive({
                                paste(paste("<b>Management unit</b>: ", location_fire$MGMT_UNIT, "<br/>"),
                                      paste("<b>Sample ID</b>: ", location_fire$SITE_IDENTIFIER, "<br/>"),
                                      paste("<b>Sample type</b>: ", location_fire$SAMPLE_ESTABLISHMENT_TYPE, "<br/>"),
-                                     paste0("<b>BEC/subzone/variant</b>: ", location$BEC_ZONE, "/",location$BEC_SBZ, "/",ifelse(is.na(location$BEC_VAR), "-", location$BEC_VAR),"<br/>"), 
+                                     paste0("<b>BEC/subzone/variant</b>: ", location_fire$BEC_ZONE, "/",location_fire$BEC_SBZ, "/",ifelse(is.na(location_fire$BEC_VAR), "-", location_fire$BEC_VAR),"<br/>"), 
                                      paste("<b># of measures</b>: ", location_fire$visit_num, "<br/>"),
                                      #paste("<b>Visited year</b> - ",location_fire$visit_year, "<br/>"),
+                                     paste("<b>Visited year</b>: ",location_fire$visit_year, "<br/>"),
+                                     paste("<b>Leading species</b>: ",location_fire$SPECIES, "<br/>"),
+                                     paste("<b>Total age of leading species</b>: ",location_fire$AGET_TLSO, "(yrs)<br/>"),
+                                     paste("<b>Live total volume</b>: ",round(location_fire$NTWB_NVAF_LS, 1), 
+                                           "(cubic m)<br/><br/>"),
                                      paste("<b>Fire year</b>: ", location_fire$fire_year, "<br/>"),
                                      paste("<b>Volume mortality</b>: ",location_fire$ntwb_mortality*100, "%<br/>")))) %>%
       addLegend(data = firemap,

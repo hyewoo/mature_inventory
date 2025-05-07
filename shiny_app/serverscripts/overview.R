@@ -28,7 +28,10 @@ output$description <- renderUI({
 output$samplemap_caption <- renderUI({
   req(input$SelectVar)
   HTML(paste0("<h5>Figure 1. Overview map of ",title(), 
-              ", with ground sample plot locations colour-coded by sample design.</h5>"))
+              ", with ground sample plot locations colour-coded by sample design. 
+              The PHASE2 sample design plot locations are the actual spatial 
+              coordinates while the GRID sample design plots are generalized to 
+              the nearest 1*1km BC Albers grid location in the overview map. </h5>"))
   
 })
 
