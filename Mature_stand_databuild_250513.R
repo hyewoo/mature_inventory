@@ -232,7 +232,7 @@ sample_data4 <- sample_data3_5 %>%
                                               SAMPLE_ESTABLISHMENT_TYPE == "CMI" &
                                               TSA == 26, 
                                             "CMI-E", SAMPLE_ESTABLISHMENT_TYPE)) %>%
-  filter(SAMPLE_ESTABLISHMENT_TYPE != "CMI-E") %>%
+  #filter(SAMPLE_ESTABLISHMENT_TYPE != "CMI-E") %>%
   mutate(SAMPLE_ESTABLISHMENT_TYPE = ifelse(SAMPLE_ESTABLISHMENT_TYPE == "NFI", "CMI", SAMPLE_ESTABLISHMENT_TYPE)) %>%
   ## *define design.  for specific tsas, intensified SUPplemental samples on a grid are combined with cmi;
   mutate(Design = case_when(TSA %in% c(26, 20) & SAMPLE_ESTABLISHMENT_TYPE %in% c('CMI','SUP') ~ "GRID",

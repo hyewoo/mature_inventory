@@ -4,10 +4,8 @@ spcomp_text <- reactive({
   
   text <- paste0("<p>Species comparisons between ground measurements and 
                  inventory labels include : 1) Leading species percent agreement 
-                 (for up to 7 leading species, tables 5a & 5b), and 2) Overall 
-                 species composition by percent basal area (for up to 14 
-                 individual species, figures 4 & 5). In each case, 'OTH' 
-                 represents the sum of all remaining species present.</p>")
+                 (tables 5a & 5b), and 2) Overall 
+                 species composition by percent basal area (figures 4 & 5).</p>")
   
   return(text)
 })
