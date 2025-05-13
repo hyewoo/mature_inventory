@@ -322,7 +322,7 @@ fig3 <- reactive({
     scale_fill_manual(name = "", values = c("palegreen3", "lightpink1", "steelblue"),
                       labels = c("Attribute Bias", "Model Bias", "Total Bias")) +
     scale_color_manual(name = "", values = c("palegreen3", "lightpink1", "steelblue")) +
-    facet_grid(Design~var, scales = "free", switch = "y", #strip.position="left",
+    facet_grid(Design~var, scales = "free", switch = "y", drop = FALSE, #strip.position="left",
                labeller = as_labeller(c(
                  'ba'="Basal Area (m2/ha)",
                  'vol'="Volume (m3/ha)",

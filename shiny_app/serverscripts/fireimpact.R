@@ -204,16 +204,41 @@ firemap <- reactive({
   
   firemap <- if(nrow(firesample) > 0){
     
+    #location <- sample_data %>% 
+    #  filter(CLSTR_ID %in% clstr_id_all()) %>% 
+    #  group_by(SITE_IDENTIFIER) %>% 
+    #  mutate(#design = ifelse(SAMPLE_ESTABLISHMENT_TYPE %in% c("CMI", "NFI", "SUP"), "GRID", "PHASE2"), 
+    #    #design_icon = ifelse(design == "GRID", 1, 2),
+    #    visit_num = length(VISIT_NUMBER),
+    #    visit_year = paste0(MEAS_YR, collapse  = ',')) %>%
+    #  select(SITE_IDENTIFIER, SAMPLE_ESTABLISHMENT_TYPE, visit_num, visit_year, BECsub,
+    #         MGMT_UNIT, TSA_DESC, BEC_ZONE, BEC_SBZ, BEC_VAR, GRID_SIZE, Design, design_icon,
+    #         BC_ALBERS_X, BC_ALBERS_Y, Latitude, Longitude, fire_year, ntwb_mortality) %>% 
+    #  distinct() %>%
+    #  left_join(lead_vol %>% 
+    #              filter(CLSTR_ID %in% clstr_id()) %>%
+    #              select(SITE_IDENTIFIER, SPECIES, AGET_TLSO, NTWB_NVAF_LS),
+    #            by = "SITE_IDENTIFIER")
+    
     location <- sample_data %>% 
       filter(CLSTR_ID %in% clstr_id_all()) %>% 
       group_by(SITE_IDENTIFIER) %>% 
-      mutate(#design = ifelse(SAMPLE_ESTABLISHMENT_TYPE %in% c("CMI", "NFI", "SUP"), "GRID", "PHASE2"), 
-        #design_icon = ifelse(design == "GRID", 1, 2),
+      mutate(#SAMPLE_ESTABLISHMENT_TYPE = ifelse(SAMPLE_ESTABLISHMENT_TYPE == "NFI", "CMI",
+        #                                   SAMPLE_ESTABLISHMENT_TYPE),
+        Design = ifelse(SAMPLE_ESTABLISHMENT_TYPE %in% c("CMI", "NFI"), "GRID", 
+                        ifelse(SAMPLE_ESTABLISHMENT_TYPE %in% c("SUP"), "SUP-GRID", "PHASE2")),
+        Design = factor(Design, levels = c("GRID", "SUP-GRID","PHASE2")),
+        design_icon = case_when(Design == "GRID" ~ 1,
+                                Design == "SUP-GRID" ~ 2,
+                                Design == "PHASE2" ~ 3,
+                                TRUE ~ NA),
         visit_num = length(VISIT_NUMBER),
-        visit_year = paste0(MEAS_YR, collapse  = ',')) %>%
+        visit_year = paste0(MEAS_YR, collapse  = ','),
+      ) %>%
       select(SITE_IDENTIFIER, SAMPLE_ESTABLISHMENT_TYPE, visit_num, visit_year, BECsub,
-             MGMT_UNIT, TSA_DESC, BEC_ZONE, BEC_SBZ, BEC_VAR, GRID_SIZE, Design, design_icon,
-             BC_ALBERS_X, BC_ALBERS_Y, Latitude, Longitude, fire_year, ntwb_mortality) %>% 
+             MGMT_UNIT, TSA_DESC, BEC_ZONE, BEC_SBZ, BEC_VAR,  Design, design_icon, #sampletype,
+             BC_ALBERS_X, BC_ALBERS_Y, Latitude, Longitude, fire_year, ntwb_mortality
+      ) %>% 
       distinct() %>%
       left_join(lead_vol %>% 
                   filter(CLSTR_ID %in% clstr_id()) %>%
@@ -229,6 +254,8 @@ firemap <- reactive({
     
     aoimap <- tsa_sp %>%
       filter(TSA_NUMBER %in% substr(unique(sample_data[sample_data$CLSTR_ID %in% clstr_id(),]$MGMT_UNIT), 4, 5))
+    
+    aoimap <- st_make_valid(aoimap)
     
     firemap <- st_filter(fire_sp, aoimap)
     
@@ -272,7 +299,7 @@ firemap <- reactive({
                 opacity = 0.5) %>%
       addLegend(data = location_fire,
                 position = "bottomright",
-                value=iconSet,colors = "darkred",labels='Fire impact-adjusted samples', 
+                value=iconSet,colors = "darkred",labels='Fire impacted samples', 
                 #pch = ,
                 title = NULL,
                 opacity = 1) 

@@ -310,7 +310,6 @@ sevplot <- reactive({
     scale_y_continuous(labels = scales::percent, expand = c(0, 0)) + 
     labs(x = "", y = "Incidence (%)",
          title = "Damage Severity") +
-    theme_bw(15) +
     theme(
       axis.line = element_line(colour="darkgray"), 
       #axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),

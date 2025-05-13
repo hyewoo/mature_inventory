@@ -40,15 +40,40 @@ samplemap <- reactive({
   req(input$SelectVar)
   if(!is.null(clstr_id_all())){
     
+    #location <- sample_data %>% 
+    #  filter(CLSTR_ID %in% clstr_id_all()) %>% 
+    #  group_by(SITE_IDENTIFIER) %>% 
+    #  mutate(Design = factor(Design, levels = c("GRID", "PHASE2")),
+    #         visit_num = length(VISIT_NUMBER),
+    #         visit_year = paste0(MEAS_YR, collapse  = ',')) %>%
+    #  select(SITE_IDENTIFIER, SAMPLE_ESTABLISHMENT_TYPE, visit_num, visit_year, BECsub,
+    #         MGMT_UNIT, TSA_DESC, BEC_ZONE, BEC_SBZ, BEC_VAR, GRID_SIZE, Design, design_icon,
+    #         BC_ALBERS_X, BC_ALBERS_Y, Latitude, Longitude) %>% 
+    #  distinct() %>%
+    #  left_join(lead_vol %>% 
+    #              filter(CLSTR_ID %in% clstr_id()) %>%
+    #              select(SITE_IDENTIFIER, SPECIES, AGET_TLSO, NTWB_NVAF_LS),
+    #            by = "SITE_IDENTIFIER")
+    
     location <- sample_data %>% 
       filter(CLSTR_ID %in% clstr_id_all()) %>% 
       group_by(SITE_IDENTIFIER) %>% 
-      mutate(Design = factor(Design, levels = c("GRID", "PHASE2")),
+      mutate(#SAMPLE_ESTABLISHMENT_TYPE = ifelse(SAMPLE_ESTABLISHMENT_TYPE == "NFI", "CMI",
+             #                                   SAMPLE_ESTABLISHMENT_TYPE),
+             Design = ifelse(SAMPLE_ESTABLISHMENT_TYPE %in% c("CMI", "NFI"), "GRID", 
+                             ifelse(SAMPLE_ESTABLISHMENT_TYPE %in% c("SUP"), "SUP-GRID", "PHASE2")),
+             Design = factor(Design, levels = c("GRID", "SUP-GRID","PHASE2")),
+             design_icon = case_when(Design == "GRID" ~ 1,
+                                     Design == "SUP-GRID" ~ 2,
+                                     Design == "PHASE2" ~ 3,
+                                     TRUE ~ NA),
              visit_num = length(VISIT_NUMBER),
-             visit_year = paste0(MEAS_YR, collapse  = ',')) %>%
+             visit_year = paste0(MEAS_YR, collapse  = ','),
+      ) %>%
       select(SITE_IDENTIFIER, SAMPLE_ESTABLISHMENT_TYPE, visit_num, visit_year, BECsub,
-             MGMT_UNIT, TSA_DESC, BEC_ZONE, BEC_SBZ, BEC_VAR, GRID_SIZE, Design, design_icon,
-             BC_ALBERS_X, BC_ALBERS_Y, Latitude, Longitude) %>% 
+             MGMT_UNIT, TSA_DESC, BEC_ZONE, BEC_SBZ, BEC_VAR,  Design, design_icon, #sampletype,
+             BC_ALBERS_X, BC_ALBERS_Y, Latitude, Longitude,
+      ) %>% 
       distinct() %>%
       left_join(lead_vol %>% 
                   filter(CLSTR_ID %in% clstr_id()) %>%
@@ -68,15 +93,30 @@ samplemap <- reactive({
     lat2 = as.numeric(st_bbox(aoimap)[4])
     
     
+    #iconFile1 <- pchIcons(3, 20, 20, 
+    #                      col = "brown3", lwd = 3)
+    #iconFile2 <- pchIcons(2, 20, 20, 
+    #                      col = "chartreuse4", lwd = 3)
+    #
+    #plotIcons <- iconList(darkred = makeIcon(iconFile1, iconWidth = 15, iconHeight = 15),
+    #                      darkolivegreen4 = makeIcon(iconFile2, iconWidth = 10, iconHeight = 10))
+    #
+    #pal <- colorFactor(c("brown3", "chartreuse4"), location$Design)
+    
+    
     iconFile1 <- pchIcons(3, 20, 20, 
                           col = "brown3", lwd = 3)
+    iconFile3 <- pchIcons(3, 20, 20, 
+                          col = "darkgoldenrod2", lwd = 3)
     iconFile2 <- pchIcons(2, 20, 20, 
                           col = "chartreuse4", lwd = 3)
     
     plotIcons <- iconList(darkred = makeIcon(iconFile1, iconWidth = 15, iconHeight = 15),
+                          darkorange = makeIcon(iconFile3, iconWidth = 15, iconHeight = 15),
                           darkolivegreen4 = makeIcon(iconFile2, iconWidth = 10, iconHeight = 10))
     
-    pal <- colorFactor(c("brown3", "chartreuse4"), location$Design)
+    pal <- colorFactor(c("brown3","darkgoldenrod2", "chartreuse4"), location$Design)
+    
     
     
     samplemap <- leaflet() %>% 

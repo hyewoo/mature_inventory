@@ -141,10 +141,18 @@ ui <- dashboardPage(
                                             choices = c(Choose = "", tsa_list)), 
                  HTML("<font size='-1'>*only n&ge;8 are selectable.</font>")),
           
-          column(3, offset = 1, downloadButton("downloadReport", "Download report"), br(),
-                 radioButtons("format", "Document format", c("HTML", "PDF"), inline = TRUE))
-          
-      ), # box
+          column(3, offset = 1, downloadButton("downloadReport", "Download report"), 
+                 br(),
+                 radioButtons("format", label = tags$span(
+                   "Document format", 
+                   tags$i(
+                     class = "glyphicon glyphicon-info-sign", 
+                     style = "color:#494949;",
+                     title = "Optimized for HTML"
+                   )), 
+                   c("HTML", "PDF"), inline = TRUE))
+                 
+          ), # box
       
       column(12, 
              
@@ -159,7 +167,7 @@ ui <- dashboardPage(
                         uiOutput("description"),
                         br(),
                         uiOutput("samplemap_caption"),
-                        leafletOutput("samplemap"),
+                        leafletOutput("samplemap", height = "600px"),
                         #br(),
                         #uiOutput("overviewflex"),
                         br()
@@ -216,7 +224,7 @@ ui <- dashboardPage(
                "Components of Bias",
                tabPanel(title = "Model vs Attribute Bias",
                         uiOutput("bias_comp"),
-                        br(),
+                        #br(),
                         plotOutput("fig3", width = "800px", height = "300px"),
                         fluidRow(
                           column(6,
@@ -260,6 +268,23 @@ ui <- dashboardPage(
                         uiOutput("stdcode_text"),
                         br(),
                         plotOutput("fig7", width = "600px", height = "200px"),
+                        br(),
+               ),
+               
+               "Comparison with Growth Model",
+               tabPanel(title = "Current Volume and PAI",
+                        uiOutput("growth_text"),
+                        br(),
+                        plotOutput("fig7_5", width = "700px"),
+                        br(),
+                        uiOutput("pai_text"),
+                        br(),
+                        fluidRow(
+                          column(6,
+                                 uiOutput("pai_table1")),
+                          column(6,
+                                 uiOutput("pai_table2"))
+                        ),
                         br(),
                ),
                

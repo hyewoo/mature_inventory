@@ -54,6 +54,7 @@ lead_vol <- readRDS("data/lead_vol.rds")
 spc_vol <- readRDS("data/spc_vol.rds")
 vdyp_grd <- readRDS("data/VDYP_grd.rds")
 tree_fh_data <- readRDS("data/Tree_FH_data.rds")
+prj_dat <- readRDS("data/prj_all.rds")
 
 # lookups 
 spcd<-readRDS("data/spcd.rds")
