@@ -1,7 +1,7 @@
 
 ysd <- reactive({
   
-  ysd <-  HTML(paste0("Ratio of Means results are summarized between ground 
+  ysd <-  HTML(paste0("Ratio of Means (ROM) results are summarized between the latest ground 
                       measurements and inventory projections (projected to 
                       ground measurement year) for stand age, height, basal 
                       area and net merchantable volume (live and dead), with 
@@ -19,6 +19,7 @@ output$description_text <- renderUI({
 
 
 table1 <- reactive({
+  
   table1_dat <- table1_dat()
   
   flextable1 <- proc_freq(table1_dat, "Design", "MEAS_YR",
@@ -33,8 +34,13 @@ table1 <- reactive({
     labels = c("visit_number_new" = "Meas", 
                "MEAS_YR" = "Measurement Year")) %>%
     bold(part = 'header', bold = TRUE) %>%
-    set_caption(as_paragraph(
-      as_b(as_chunk("Table 1. Number of ground samples at latest measurement year.")))) %>%
+    set_caption(caption = as_paragraph(
+      as_chunk("Table 2. Number of ground samples at latest measurement year.", 
+               props = fp_text_default(bold = TRUE))),
+      align_with_table = FALSE,
+      word_stylename = "Table Caption") %>%
+    #set_caption(as_paragraph(
+    #  as_b(as_chunk("Table 2. Number of ground samples at latest measurement year.")))) %>%
     autofit()
   
   return(flextable1)
@@ -93,7 +99,7 @@ table2 <- reactive({
   table2 <- table2 %>%
     fix_border_issues(part = "all") %>%
     align(j = 9, align = "center", part = "body") %>%
-    hline(i = row_loc[1], part = "body") %>%
+    hline(i = row_loc[1:length(row_loc)-1], part = "body") %>%
     color(i = ~ sigrope == "N", j = 9, color = 'darkgreen', part = "body")  %>%
     color(i = ~ sigrope == "Y", j = 9, color = 'red', part = "body") %>%
     bg(i = ~ sigrope == "N", j = 9, bg = "lightgreen", part = "body") %>%
@@ -105,8 +111,13 @@ table2 <- reactive({
                     rom = "ROM", l95rom = "L95%", u95rom = "U95%",
                     sigrope = "ROPE Test")) %>%
     bold(part = 'header', bold = TRUE) %>%
-    set_caption(as_paragraph(
-      as_b(as_chunk("Table 2. Live standing average age, height, basal area, volume, ROM (grd/inv), 95% confidence limits, and ROPE test.")))) %>%
+    set_caption(caption = as_paragraph(
+      as_chunk("Table 3. Live standing average age, height, basal area, volume, ROM (grd/inv), 95% confidence limits, and ROPE test.", 
+               props = fp_text_default(bold = TRUE))),
+      align_with_table = FALSE,
+      word_stylename = "Table Caption") %>%
+    #set_caption(as_paragraph(
+    #  as_b(as_chunk("Table 3. Live standing average age, height, basal area, volume, ROM (grd/inv), 95% confidence limits, and ROPE test.")))) %>%
     autofit()
   
   return(table2)
@@ -173,8 +184,13 @@ table3 <- reactive({
                     rom = "ROM", l95rom = "L95%", u95rom = "U95%",
                     sigrope = "ROPE Test")) %>%
     bold(part = 'header', bold = TRUE) %>%
-    set_caption(as_paragraph(
-      as_b(as_chunk("Table 3. Dead standing average volume, ROM (grd/inv), 95% confidence limits, and ROPE test.")))) %>%
+    set_caption(caption = as_paragraph(
+      as_chunk("Table 4. Dead standing average volume, ROM (grd/inv), 95% confidence limits, and ROPE test.", 
+               props = fp_text_default(bold = TRUE))),
+      align_with_table = FALSE,
+      word_stylename = "Table Caption") %>%
+    #set_caption(as_paragraph(
+    #  as_b(as_chunk("Table 4. Dead standing average volume, ROM (grd/inv), 95% confidence limits, and ROPE test.")))) %>%
     autofit()
   
   
@@ -210,7 +226,7 @@ table4 <- reactive({
     select(Design, SPC_GRP_INV, n, grd_vol, inv_vol, 
            rom_vol, l95rom_vol, u95rom_vol, sigrope_vol) %>%
     distinct() %>%
-    mutate(Design = factor(Design, levels = c("GRID", "PHASE2")),
+    mutate(#Design = factor(Design, levels = c("GRID", "PHASE2")),
            grd_vol = round(grd_vol, 1),
            inv_vol = round(inv_vol, 1),
            rom_vol = round(rom_vol, 2),
@@ -226,7 +242,7 @@ table4 <- reactive({
   table4 <- table4%>%
     fix_border_issues(part = "all") %>%
     align(j = 9, align = "center", part = "body") %>%
-    hline(i = row_loc[1], part = "body") %>%
+    hline(i = row_loc[1:length(row_loc)-1], part = "body") %>%
     color(i = ~ sigrope_vol == "N", j = 9, color = 'darkgreen', part = "body")  %>%
     color(i = ~ sigrope_vol == "Y", j = 9, color = 'red', part = "body") %>%
     bg(i = ~ sigrope_vol == "N", j = 9, bg = "lightgreen", part = "body") %>%
@@ -239,8 +255,13 @@ table4 <- reactive({
                     rom_vol = "ROM", l95rom_vol = "L95%", u95rom_vol = "U95%",
                     sigrope_vol = "ROPE Test")) %>%
     bold(part = 'header', bold = TRUE) %>%
-    set_caption(as_paragraph(
-      as_b(as_chunk("Table 4. Live standing volume by leading inventory species group, ROM (grd/inv), 95% confidence limits, and ROPE test. Species are listed when n ≥ 8 in any sampling design. When more than three species are present, those with n < 8 and the lowest counts are grouped under ‘OTH’.")))) %>%
+    set_caption(caption = as_paragraph(
+      as_chunk("Table 5. Live standing volume by leading inventory species group, ROM (grd/inv), 95% confidence limits, and ROPE test. Species are listed when n ≥ 8 in any sampling design. When more than three species are present, those with n < 8 and the lowest counts are grouped under ‘OTH’.", 
+               props = fp_text_default(bold = TRUE))),
+      align_with_table = FALSE,
+      word_stylename = "Table Caption") %>%
+    #set_caption(as_paragraph(
+    #  as_b(as_chunk("Table 5. Live standing volume by leading inventory species group, ROM (grd/inv), 95% confidence limits, and ROPE test. Species are listed when n ≥ 8 in any sampling design. When more than three species are present, those with n < 8 and the lowest counts are grouped under ‘OTH’.")))) %>%
     autofit()
   
   return(table4)
@@ -310,7 +331,7 @@ fig3 <- reactive({
                  values_to = "bias")
   
   fig3 <- fig3_dat1 %>%
-    mutate(Design = factor(Design, levels = c("GRID", "PHASE2"))) %>%
+    #mutate(Design = factor(Design, levels = c("GRID", "PHASE2"))) %>%
     ggplot(aes(x = comp, y = bias, group = Design)) +
     geom_bar(aes(fill = comp, group = Design), stat = 'identity',
              position = position_dodge2(width = 0.5), width = 0.7) +
@@ -327,7 +348,10 @@ fig3 <- reactive({
                  'ba'="Basal Area (m2/ha)",
                  'vol'="Volume (m3/ha)",
                  "GRID" = "GRID",
-                 "PHASE2" = "PHASE2"
+                 "PHASE2" = "PHASE2",
+                 "Quesnel West" = "Quesnel West",
+                 "Quesnel East" = "Quesnel East",
+                 "Quesnel Overall" = "Quesnel Overall"
                ))) +
     labs(x = "", y = "", fill = NULL) +
     coord_flip() +

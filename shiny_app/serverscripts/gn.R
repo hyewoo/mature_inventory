@@ -22,7 +22,7 @@ used (defined as the Crown vegetated treed landbase where the projected
 inventory age adjusted to ground sample measurement year is >50 years old).</p>
 <p>Two available sampling designs include: 1) GRID : these are either CMI 
 monitoring plots on the NFI 20km*20km grid, or an intensificiation of the 
-NFI grid using CMI and/or VRI ground supplemental samples, and 2) Phase 2 : 
+NFI grid using CMI and/or VRI ground supplemental samples, and 2) PHASE 2 : 
 these are from past designed-based projects using PPSWR selection methods 
 from a known population.</p>
 <p>Components of Bias are computed by re-running VDYP7 projections after 

@@ -1,7 +1,7 @@
 ---
 title: "`r title()` Mature Inventory Assessment"
 author: "Forest Analysis and Inventory Branch"
-date: "Version 2025-04-28; Created `r Sys.Date()`"
+date: "Version 2025-07-15; Created `r Sys.Date()`"
 #runtime: shiny
 always_allow_html: true
 geometry: margin=1cm
@@ -36,6 +36,8 @@ colorize <- function(x, color) {
     sprintf("<span style='color: %s;'>%s</span>", color, x)
   } else x
 }
+
+library(shiny)
 ```
 
 <style>
@@ -47,28 +49,48 @@ colorize <- function(x, color) {
 
 ## Overview
 
+#### Overview
+
 `r htmltopdf(description())`
+
+<br>
 
 ```{r samplemap, fig.width=8, echo=FALSE, fig.align='center'}
 samplemap()
 ```
 <br>
-**Figure 1. Overview map of TSA with ground sample plot locations colour-coded by sample design.**
+
+| **Figure 1. Overview map of `r title()`, with ground sample plot locations colour-coded by sample design. The PHASE2 sample design plot locations are the actual spatial coordinates while the GRID sample design plots are generalized to the nearest 1*1km BC Albers grid location in the overview map.**
   
 <br>
 
+```{r, include=T, echo=F,warning=FALSE, message = FALSE}
+samplenum()
+```
 
-## Summary of Key Results
+<br>
+```{r, fig.width=8, echo=FALSE, fig.align='center'}
+becplot() + theme_bw(12) +
+      theme(
+        panel.grid.major.x = element_blank(),
+        panel.grid.minor.x = element_blank(),
+        panel.grid.minor.y = element_blank(),
+        panel.grid.major.y = element_line(colour="darkgray")
+      )
+```
+
+
+#### Summary of Key Results
 <br>
 
 ```{r samplesize, echo=FALSE,warning=FALSE, message = FALSE}
 samplesize()
 ```
 
+<br>
 
 ::: columns
 ::: column
-
 
 ```{r, include=T, echo=F,warning=FALSE, message = FALSE}
 correct_sp_lead()
@@ -87,20 +109,9 @@ corsp_vol_flex()
   
 | **Listing of those Attributes where Ground: Inventory ratio of means are practically different (Y) or not practically different (N) from 1.0. Attributes which are not listed here have inconclusive (I) results.**
 
-::: columns
-::: column
 <br>
-```{r, include=T, echo=F,warning=FALSE, message = FALSE}
-test1()
 
-test2()
-
-test3()
-```
-:::
-
-::: column
-```{r, include=T, fig.height=6,fig.width=4,echo=F,warning=FALSE}
+```{r, include=T, fig.width=8,echo=F,warning=FALSE}
 fig2() + theme_bw(12) +
       theme(
          plot.caption = element_text(hjust = 0, size=10, face = "bold"),
@@ -114,12 +125,34 @@ fig2() + theme_bw(12) +
       axis.text.y = element_blank(), axis.ticks.x = element_blank()
       ) 
 ```
-:::
-:::
 
-## Stand Summaries
 
-`r htmltopdf(ysd())`
+| **Figure 2. Overall Ratio of means (ground/inventory), 95% confidence interval, & ROPE* interval for the live attributes age, height, basal area & volume, across each sample design.**
+
+<br>
+```{r, include=T, echo=F,warning=FALSE, message = FALSE}
+test1()
+
+test2()
+
+test3()
+```
+
+| *For those strata with a least 8 observations, a region of practical equivalence (ROPE) is pre-determined at 0.9-1.1 to assess if there is a practical difference with the attribute assessed. A practical difference (Y) occurs when the ratio-of-means (ROM) confidence interval (CI) sits entirely outside the ROPE, no practical difference (N) occurs when the ROM CI is entirely within the ROPE, all other situations are inconclusive (I).
+
+
+```{r, include=FALSE}
+incProgress(1/3)
+#Sys.sleep(2)
+```
+
+## Ground vs. Inventory
+
+#### Stand Summaries
+
+`r htmltopdf(description())`
+
+<br>
 
 ```{r, include=T, fig.height=8,echo=F,warning=FALSE}
 table1()
@@ -131,47 +164,8 @@ table3()
 table4()
 ```
 
-## Componets of Bias
 
-#### Model vs. Attribute Bias
-
-`r htmltopdf(bias_comp())`
-
-```{r, fig.width=8,fig.height=3, echo=FALSE,warning=FALSE, message = FALSE}
-fig3() + theme_bw(12) +
-      theme(
-        legend.position = "top",
-          axis.ticks = element_blank(),
-          axis.text.y = element_blank(),
-          panel.grid.major.y = element_blank(),
-          #panel.grid.minor.x = element_blank(),
-          panel.grid.minor.y = element_blank(),
-          strip.placement = "outside"
-      ) 
-
-```
-
-::: columns
-::: column
-```{r, include=T, echo=F,warning=FALSE, message = FALSE}
-fig3_1()
-```
-:::
-
-::: column
-```{r, include=T, echo=F,warning=FALSE, message = FALSE}
-fig3_2()
-```
-:::
-:::
-
-
-| **Figure 3. Components of Bias (total, model, attribute), for Basal Area (left graph) and Volume (right graph), by ground sample design.**
-
-
-## Ground vs. Inventory
-
-#### Leading Species
+#### Species Composition
 
 `r htmltopdf(spcomp_text())`
 
@@ -184,7 +178,6 @@ ld_table2() %>% bg(j = (1:(ld_table2()$body$content$ncol/2))*2,
 
 ```
 
-#### Overall Species
 
 ```{r, fig.height=4,echo=FALSE,warning=FALSE}
 fig4() + theme_bw(12) +
@@ -197,7 +190,7 @@ fig4() + theme_bw(12) +
     )  
 ```
 
-| **Figure 4. Overall live standing species composition (% of total live merch volume reported in Table 2) between ground and inventory, for both GRID (left) and Phase 2 (right) sample designs. Species percent is computed from the summed live merch volume (m3/ha) by species of all plots combined. Species composition overlap is a rough index, and expressed as the ratio between the minimum in common relative to the maximum in common that could have been.**
+| **Figure 4. Overall live standing species composition (% of total live merch volume reported in Table 3) between ground and inventory, for both GRID (left) and PHASE 2 (right) sample designs. Species percent is computed from the summed live merch volume (m3/ha) by species of all plots combined. Species composition overlap is a rough index, and expressed as the ratio between the minimum in common relative to the maximum in common that could have been.**
   
 ```{r, fig.height=4,echo=FALSE,warning=FALSE}
 fig5() + theme_bw(12) +
@@ -211,13 +204,14 @@ fig5() + theme_bw(12) +
 
 ```
 
-| **Figure 5. Overall dead standing species composition (% of total dead merch volume reported in Table 3) of ground samples, for both GRID (left) and Phase 2 (right) sample designs. Species percent is computed from the summed dead merch volume (m3/ha) by species of all plots combined. The inventory dead volume is modeled primarily as Mountain Pine Beetle mortality, and therefore assumed 100% allocated to PL.**
+| **Figure 5. Overall dead standing species composition (% of total dead merch volume reported in Table 4) of ground samples, for both GRID (left) and PHASE 2 (right) sample designs. Species percent is computed from the summed dead merch volume (m3/ha) by species of all plots combined. The inventory dead volume is modeled primarily as Mountain Pine Beetle mortality, and therefore assumed 100% allocated to PL.**
   
   
-  
-#### Other Attributes
+<br>
 
-```{r, fig.height=8,echo=FALSE,warning=FALSE}
+#### BA, Age, Height, and Volume
+
+```{r, fig.height=10,echo=FALSE,warning=FALSE}
 fig6() + theme_bw(12) +
     theme(
        strip.background.x = element_rect(fill=NA, colour=NA,size=1)
@@ -226,12 +220,76 @@ fig6() + theme_bw(12) +
 ```
 
 
-| **Figure 6. Scatter plots of ground to inventory age (top), height (middle), and volume (bottom), for grid samples (left) and Phase 2 samples (right), colour-themed by inventory leading species group. Each graph also includes overlays of the computed ratio of means (red line) and 1:1 reference (grey line).**
+| **Figure 6. Scatter plots of ground to inventory age (top), height (middle), and volume (bottom), for GRID samples (left) and PHASE2 samples (right), colour-themed by inventory leading species group. Each graph also includes overlays of the computed ratio of means (red line) and 1:1 reference (grey line).**
   
   
 
+## Compariosn with TSR
 
-## Inventory Standards of Data Collection
+#### Current Volumes 
+
+`r htmltopdf(curvoltext())`
+
+```{r, fig.height=4,echo=FALSE,warning=FALSE}
+maturetsr() + theme_bw(12) +
+    #theme_bw() + 
+    theme(
+      plot.title = element_text(lineheight = 0.9),
+      panel.grid.major.x = element_blank(),
+      panel.grid.minor.x = element_blank(),
+      panel.grid.major.y = element_line(color = 'darkgray'), 
+      rect = element_blank()
+    ) 
+
+vol_bias() + theme_bw(12) +
+    #theme_bw() + 
+    theme(
+      legend.position="top",
+      #panel.grid.major.x = element_blank(),
+      panel.grid.major.y = element_line(color = 'darkgray'), 
+      panel.grid.minor.y = element_line(color = 'darkgray'), 
+      panel.grid.minor.x = element_blank(),
+      rect = element_blank()
+    ) 
+```
+  
+#### Periodic Annual Increment
+
+`r htmltopdf(paitext())`
+
+::: columns
+::: column
+```{r, include=T, echo=F,warning=FALSE, message = FALSE}
+tsr_pai_flex1()
+```
+:::
+
+::: column
+```{r, include=T, echo=F, warning=FALSE, message = FALSE}
+tsr_pai_flex2()
+```
+:::
+:::
+
+```{r, fig.height=2.5, fig.width=6, echo=FALSE, warning=FALSE, message = FALSE}
+paidiff() + theme_bw(12) +
+      theme(
+        legend.position = "left",
+        axis.ticks = element_blank(),
+        panel.grid.major.y = element_blank(),
+        panel.grid.minor.x = element_blank(),
+        panel.grid.minor.y = element_blank(),
+        axis.text.y = element_blank(), 
+        axis.ticks.x = element_blank(),
+        rect = element_blank()
+      ) 
+```
+
+
+
+## Standards of Data Collection
+
+#### VRI Standard
 
 `r htmltopdf(stdcode_text())`
 
@@ -242,6 +300,12 @@ fig7() + theme_bw(12) +
           panel.grid.major.y = element_blank(),
           plot.caption = element_text(hjust = 0, size=10, face = "bold"),
           plot.caption.position = "plot")
+```
+
+
+```{r, include=FALSE}
+incProgress(1/3)
+#Sys.sleep(2)
 ```
 
 
@@ -354,6 +418,87 @@ fhcocflex()
 ```
 
 
+## Comparison with VDYP
+
+#### Current Volume
+
+`r htmltopdf(growth_text())`
+
+```{r, fig.width=6,include=T, echo=F,warning=FALSE, message = FALSE}
+fig7_5()
+```
+
+#### Periodic Annual Increment
+
+`r htmltopdf(pai_text())`
+
+::: columns
+::: column
+```{r, include=T, echo=F,warning=FALSE, message = FALSE}
+pai_table1()
+```
+:::
+
+::: column
+```{r, include=T, echo=F, warning=FALSE, message = FALSE}
+pai_table1()
+```
+:::
+:::
+
+```{r, fig.height=2.5, fig.width=6, echo=FALSE, warning=FALSE, message = FALSE}
+paidiff() + theme_bw(12) +
+      theme(
+        legend.position = "left",
+        axis.ticks = element_blank(),
+        panel.grid.major.y = element_blank(),
+        panel.grid.minor.x = element_blank(),
+        panel.grid.minor.y = element_blank(),
+        axis.text.y = element_blank(), 
+        axis.ticks.x = element_blank(),
+        rect = element_blank()
+      ) 
+```
+
+
+## Componets of Bias
+
+#### Model vs. Attribute Bias
+
+`r htmltopdf(bias_comp())`
+
+```{r, fig.width=8,fig.height=3, echo=FALSE,warning=FALSE, message = FALSE}
+fig3() + theme_bw(12) +
+      theme(
+        legend.position = "top",
+          axis.ticks = element_blank(),
+          axis.text.y = element_blank(),
+          panel.grid.major.y = element_blank(),
+          #panel.grid.minor.x = element_blank(),
+          panel.grid.minor.y = element_blank(),
+          strip.placement = "outside"
+      ) 
+
+```
+
+::: columns
+::: column
+```{r, include=T, echo=F,warning=FALSE, message = FALSE}
+fig3_1()
+```
+:::
+
+::: column
+```{r, include=T, echo=F,warning=FALSE, message = FALSE}
+fig3_2()
+```
+:::
+:::
+
+
+| **Figure 3. Components of Bias (total, model, attribute), for Basal Area (left graph) and Volume (right graph), by ground sample design.**
+
+
 ## General Notes
 
 ### Disclaimer
@@ -404,7 +549,10 @@ damsevtable()
 DT::datatable(reference, escape = FALSE)
 ```
 
-
+```{r, include=FALSE}
+incProgress(1/3)
+#Sys.sleep(2)
+```
 
 
 

@@ -85,11 +85,121 @@ sample_tsa30 <- reactive({
 })
 
 
+sample_quesnel <- reactive({
+  req(input$SelectVar)
+  
+  if (input$SelectVar == "Quesnel TSA"){
+    sample_quesnel <- sample_data %>%
+      filter(MGMT_UNIT == "TSA26_Quesnel") %>%
+      mutate(`Quesnel West` = SAMPLE_ESTABLISHMENT_TYPE %in% c('CMI', 'SUP'),
+             `Quesnel East` = SAMPLE_ESTABLISHMENT_TYPE %in% c('VRI'),
+             `Quesnel Overall` = SAMPLE_ESTABLISHMENT_TYPE %in% c('CMI', 'CMI-E')) %>% 
+      gather(group, keep, `Quesnel West`,`Quesnel East`, `Quesnel Overall`) %>% 
+      filter(keep) %>% 
+      mutate(Design = factor(group, levels = c("Quesnel West", "Quesnel East", "Quesnel Overall"))) 
+  } else NULL
+  
+  return(sample_quesnel)
+  
+})
+
+
+#sample_data1 <- reactive({
+#  req(input$SelectVar)
+#  
+#  if (input$SelectVar == "Quesnel TSA"){
+#    
+#    sample_data1 <- sample_data %>%
+#      filter(MGMT_UNIT == "TSA26_Quesnel") %>%
+#      mutate(`Quesnel West` = SAMPLE_ESTABLISHMENT_TYPE %in% c('CMI', 'SUP'),
+#             `Quesnel East` = SAMPLE_ESTABLISHMENT_TYPE %in% c('VRI'),
+#             `Quesnel Overall` = SAMPLE_ESTABLISHMENT_TYPE %in% c('CMI', 'CMI-E')) %>% 
+#      gather(group, keep, `Quesnel West`,`Quesnel East`, `Quesnel Overall`) %>% 
+#      filter(keep) %>% 
+#      mutate(Design = factor(group, levels = c("Quesnel West", "Quesnel East", "Quesnel Overall"))) %>% 
+#      filter(CLSTR_ID %in%  clstr_id_all())
+#    
+#  } else {
+#    sample_data1 <- sample_data %>%
+#      filter(CLSTR_ID %in%  clstr_id_all())
+#  }
+#  
+#  return(sample_data1)
+#})
+#
+#
+#
+#
+lead_vol1 <- reactive({
+  req(input$SelectVar)
+  
+  if (input$SelectVar == "Quesnel TSA"){
+    
+    lead_vol1 <- sample_quesnel() %>%
+      select(CLSTR_ID, Design) %>%
+      left_join(lead_vol %>% select(-Design), by = "CLSTR_ID")
+    
+  } else lead_vol1 <- lead_vol %>%
+      mutate(Design = ifelse(Design %in% c("GRID", "SUP-GRID"), "GRID", "PHASE2")) %>%
+      mutate(Design = factor(Design, levels = c("GRID", "PHASE2")))
+  
+  return(lead_vol1)
+})
+
+spc_vol1 <- reactive({
+  req(input$SelectVar)
+  
+  if (input$SelectVar == "Quesnel TSA"){
+    
+    spc_vol1 <- sample_quesnel() %>%
+      select(CLSTR_ID, Design) %>%
+      left_join(spc_vol %>% select(-Design), by = "CLSTR_ID")
+    
+  } else spc_vol1 <- spc_vol %>%
+      mutate(Design = ifelse(Design %in% c("GRID", "SUP-GRID"), "GRID", "PHASE2")) %>%
+      mutate(Design = factor(Design, levels = c("GRID", "PHASE2")))
+  
+  return(spc_vol1)
+})
+
+
+
+#correct_ls <- reactive({
+#  req(input$SelectVar)
+#  
+#  if (input$SelectVar == "Quesnel TSA"){
+#    
+#    sample_quesnel <- sample_quesnel %>%
+#      select(CLSTR_ID, Design) %>%
+#      left_join(lead_vol %>% select(-Design), by = "CLSTR_ID") %>%
+#      mutate(SPECIES = ifelse(is.na(SPECIES), "", SPECIES),
+#             SPECIES_INV = ifelse(is.na(SPECIES_INV), "", SPECIES_INV)) %>%
+#      group_by(Design) %>%
+#      reframe(correct_ls = round(sum(SPECIES_INV == SPECIES)/n(), 3)) %>%
+#      data.table
+#    
+#  } else {
+#    correct_ls <- lead_vol %>%
+#      filter(CLSTR_ID %in%  clstr_id()) %>%
+#      mutate(SPECIES = ifelse(is.na(SPECIES), "", SPECIES),
+#             SPECIES_INV = ifelse(is.na(SPECIES_INV), "", SPECIES_INV)) %>%
+#      group_by(Design) %>%
+#      reframe(correct_ls = round(sum(SPECIES_INV == SPECIES)/n(), 3)) %>%
+#      data.table
+#  }
+#  
+#  return(correct_ls)
+#  
+#})
+
+
 
 correct_ls <- reactive({
   req(input$SelectVar)
   
-  correct_ls <- lead_vol %>%
+  lead_vol1 <- lead_vol1()
+  
+  correct_ls <- lead_vol1 %>%
     filter(CLSTR_ID %in%  clstr_id()) %>%
     mutate(SPECIES = ifelse(is.na(SPECIES), "", SPECIES),
            SPECIES_INV = ifelse(is.na(SPECIES_INV), "", SPECIES_INV)) %>%
@@ -104,25 +214,10 @@ correct_ls <- reactive({
 
 top3spc <- reactive({
   req(input$SelectVar)
+  
+  lead_vol1 <- lead_vol1()
 
-#top3spc <- lead_vol %>%  
-#  filter(CLSTR_ID %in% clstr_id()) %>%
-#  filter(!is.na(SPC_GRP2)) %>%  
-#  group_by(Design, SPC_GRP2) %>%
-#  count() %>% 
-#  group_by(Design) %>%
-#  top_n(3) %>%
-#  arrange(Design, desc(n), desc(SPC_GRP2)) %>%
-#  slice_head(n = 3) %>%
-#  mutate(top3 = "Y") %>%
-#  data.table
-#  #group_by(SPC_GRP2) %>%
-#  #count() %>% 
-#  #ungroup() %>% 
-#  #top_n(3) %>%
-#  #pull(SPC_GRP2)
-
-top3spc <- lead_vol %>%  
+top3spc <- lead_vol1 %>%  
   filter(CLSTR_ID %in% clstr_id()) %>%
   filter(!is.na(SPECIES_INV)) %>%  
   group_by(Design, SPECIES_INV) %>%
@@ -132,7 +227,7 @@ top3spc <- lead_vol %>%
 
 if (nrow(top3spc) < 3){
   
-  top3spc <- lead_vol %>%  
+  top3spc <- lead_vol1 %>%  
     filter(CLSTR_ID %in% clstr_id()) %>%
     filter(!is.na(SPECIES_INV)) %>%  
     group_by(Design, SPECIES_INV) %>%
@@ -153,7 +248,9 @@ return(top3spc)
 lead_vol_dat <- reactive({
   req(input$SelectVar)
   
-  lead_vol_dat <- lead_vol %>%
+  lead_vol1 <- lead_vol1()
+  
+  lead_vol_dat <- lead_vol1 %>%
     filter(CLSTR_ID %in%  clstr_id()) %>%
     select(CLSTR_ID, Design, 
            AGET_TLSO, BA_HA_LS, HT_TLSO, NTWB_NVAF_LS, NTWB_NVAF_DS,
@@ -275,7 +372,11 @@ lead_vol_dat <- reactive({
                                        (!is.na(l95rom_voldead) & l95rom_voldead < lwr_limit) & (!is.na(u95rom_voldead) & u95rom_voldead > lwr_limit) ~ "I",
                                        (!is.na(l95rom_voldead) & l95rom_voldead < lwr_limit) & (!is.na(u95rom_voldead) & u95rom_voldead > upr_limit) ~ "I"
            )
-    ) %>% data.table
+    ) %>% 
+    #mutate(Design = ifelse(input$SelectVar == "Quesnel TSA",
+    #                       factor(Design, levels = c("GRID", "PHASE2")),
+    #                       factor(Design, levels = c("GRID", "PHASE2")))) %>% 
+    data.table
   
   lead_vol_dat5 <- lead_vol_dat4 %>%
     select(Design, starts_with("n_"),starts_with("inv_"),starts_with("grd_"),
@@ -296,11 +397,12 @@ lead_vol_tsa30 <- reactive({
   req(input$SelectVar)
   
   #lead_vol_dat <- lead_vol_dat()
+  lead_vol1 <- lead_vol1()
   
   if (input$SelectVar == "Fraser TSA"){
     sample_tsa30 <- sample_tsa30()
     
-    tsa30_leadvol <- lead_vol %>%
+    tsa30_leadvol <- lead_vol1 %>%
       filter(CLSTR_ID %in% tsa30_ci()) %>%
       left_join(sample_tsa30, by = c('CLSTR_ID', 'Design')) %>%
       select(CLSTR_ID, Design, 
@@ -406,6 +508,7 @@ lead_vol_tsa30 <- reactive({
 invspc_vol_dat <- reactive({
   req(input$SelectVar)
   
+  lead_vol1 <- lead_vol1()
   top3spc <- top3spc()
   
   #top3_grid <- top3spc[Design == "GRID",]$SPECIES_INV
@@ -419,8 +522,8 @@ invspc_vol_dat <- reactive({
   #  select(SITE_IDENTIFIER, CLSTR_ID, Design, SPC_GRP1, SPC_GRP_GRD, SPC_GRP2, 
   #         SPC_GRP_INV, NTWB_NVAF_LS, vdyp_vol_dwb)
   
-  invspc_vol <- lead_vol %>%
-    filter(CLSTR_ID %in%  clstr_id()) %>% 
+  invspc_vol <- lead_vol1 %>%
+    filter(CLSTR_ID %in% clstr_id()) %>% 
     left_join(top3spc %>% select(-n), by = c('Design', 'SPECIES_INV')) %>%
     mutate(#SPC_GRP_INV = ifelse(!is.na(top3) & top3 == "Y", SPC_GRP2, "OTH"),
       #SPC_GRP_INV = ifelse(!is.na(top3) & top3 == "Y", SPECIES_INV, "OTH"),
@@ -490,7 +593,9 @@ invspc_vol_dat <- reactive({
 
 spc_vol_dat <- reactive({
   
-  spc_vol_dat <- spc_vol %>%
+  spc_vol1 <- spc_vol1()
+  
+  spc_vol_dat <- spc_vol1 %>%
     filter(CLSTR_ID %in%  clstr_id()) %>%
     group_by(Design, source, SPECIES) %>%
     summarise(livevol = sum(LIVE_VOL_PER_HA, na.rm = T),
@@ -541,12 +646,13 @@ invspc_vol_tsa30 <- reactive({
   
   if (input$SelectVar == "Fraser TSA"){
     
+    lead_vol1 <- lead_vol1()
     top3spc <- top3spc()
     #top3_phase2 <- top3spc[Design == "PHASE2",]$SPECIES_INV
     
     sample_tsa30 <- sample_tsa30()
     
-    tsa30_spcvol <- lead_vol %>%
+    tsa30_spcvol <- lead_vol1 %>%
       filter(CLSTR_ID %in%  tsa30_ci()) %>% 
       left_join(top3spc %>% select(-n), by = c('Design', 'SPECIES_INV')) %>%
       mutate(#SPC_GRP_INV = ifelse(!is.na(top3) & top3 == "Y", SPC_GRP2, "OTH"),
@@ -649,7 +755,12 @@ invspc_vol_tsa30 <- reactive({
 table1_dat <- reactive({
   req(input$SelectVar)
   
-  table1_dat <- sample_data %>%  
+  if (input$SelectVar == "Quesnel TSA") {
+    sample_dat <- sample_quesnel() 
+    
+  } else sample_dat <- sample_data
+  
+  table1_dat <- sample_dat %>%  
     filter(CLSTR_ID %in% clstr_id()) %>%
     group_by(SITE_IDENTIFIER) %>%
     arrange(VISIT_NUMBER) %>%
@@ -788,12 +899,24 @@ bias_source <- reactive({
 
 
 
+clstr_id_grid_all <- reactive({
+  
+  req(input$SelectVar)
+  
+  clstr_id_grid_all <- sample_data %>% 
+    filter(TSA_DESC %in% input$SelectVar, Design %in% c("GRID", "SUP-GRID")) %>%
+    pull(CLSTR_ID)
+  
+  return(clstr_id_grid_all)
+  
+})
+
 clstr_id_grid <- reactive({
   
   req(input$SelectVar)
   
   clstr_id_grid <- sample_data %>% 
-    filter(TSA_DESC %in% input$SelectVar, Design == "GRID", LAST_MSMT_new == "Y") %>%
+    filter(TSA_DESC %in% input$SelectVar, Design %in% c("GRID", "SUP-GRID"), LAST_MSMT_new == "Y") %>%
     pull(CLSTR_ID)
   
   return(clstr_id_grid)
@@ -806,7 +929,7 @@ clstr_id_last2 <- reactive({
   req(input$SelectVar)
   
   clstr_id_last2 <- sample_data %>% 
-    filter(TSA_DESC %in% input$SelectVar, Design == "GRID") %>%
+    filter(TSA_DESC %in% input$SelectVar, Design %in% c("GRID", "SUP-GRID")) %>%
     group_by(SITE_IDENTIFIER) %>%
     filter(n() > 1) %>% 
     arrange(VISIT_NUMBER) %>% 
@@ -950,3 +1073,89 @@ fig10_dat <- reactive({
   
 })
 
+
+Fig15_dat <- reactive({
+  
+  req(input$SelectVar)
+  
+  comp_dat <- prj_msyt_vdyp %>%
+    filter(CLSTR_ID %in% clstr_id_grid_all()) %>%
+    arrange(SITE_IDENTIFIER, VISIT_NUMBER) %>%
+    group_by(SITE_IDENTIFIER) %>%
+    filter(VISIT_NUMBER == min(VISIT_NUMBER) | VISIT_NUMBER == max(VISIT_NUMBER))
+  
+  comp_dat <- comp_dat %>%
+    mutate(grdnv = ifelse(is.na(LIVE_VOL_PER_HA), 0, LIVE_VOL_PER_HA),
+           prednv = ifelse(is.na(current_vol), 0, current_vol),
+           voldiff = grdnv - prednv
+    )  
+  
+  setDT(comp_dat)[, year_dff := MEAS_YR - lag(MEAS_YR), by = SITE_IDENTIFIER]
+  setDT(comp_dat)[, grdnv_diff := grdnv - lag(grdnv), by = SITE_IDENTIFIER]
+  setDT(comp_dat)[, prednv_diff := prednv - lag(prednv), by = SITE_IDENTIFIER]
+  
+  Fig15_dat <- comp_dat %>%
+    select(SITE_IDENTIFIER, year_dff, grdnv_diff, prednv_diff) %>%
+    filter(!is.na(year_dff)) %>%
+    mutate(grdnv_pai = grdnv_diff/year_dff,
+           prednv_pai = prednv_diff/year_dff)
+  
+  return(Fig15_dat)
+  
+})
+
+
+
+tsrpaitest1 <- reactive({
+  
+  req(input$SelectVar)
+  
+  Fig15_dat <- Fig15_dat()
+  
+  if(nrow(Fig15_dat) > 0 & all(!is.na(Fig15_dat$grdnv_pai)) & 
+     length(Fig15_dat$prednv_pai - Fig15_dat$grdnv_pai) > 1){
+    
+    diff_vals <- Fig15_dat$prednv_pai - Fig15_dat$grdnv_pai
+    
+    paitest1 <- t.test(diff_vals)
+    
+    # Force scalar numeric values
+    est <- as.numeric(paitest1$estimate)
+    pval <- as.numeric(paitest1$p.value)
+    
+    return(c(est, pval))
+    
+  } else {
+    return(c(NA_real_, NA_real_))
+  }
+  
+})
+
+
+
+tsrpaitest_comment <- reactive({
+  
+  req(input$SelectVar)
+  
+  if (length(remeas_plot()) > 0){
+    
+    test1_vals <- tsrpaitest1()
+    
+    if (!is.null(test1_vals) & !is.na(test1_vals[2]) & test1_vals[2] < 0.05){
+      tsrpaitest_comment <- paste0("TSR is ", "<b>",
+                              ifelse(!is.na(test1_vals[1]) & test1_vals[1] > 0, "over", "under"), "</b>",
+                              "-estimating actual growth by ", "<b>", 
+                              ifelse(!is.na(test1_vals[1]), round(abs(test1_vals[1]), 1), "-"), 
+                              "</b>"," m<sup>3</sup>/ha/yr.</br>")
+    } else if (!is.null(test1_vals) & !is.na(test1_vals[2]) & test1_vals[2] >= 0.05){
+      tsrpaitest_comment <- "no significant difference between TSR and GRID."
+    } else if (is.null(test1_vals) | all(is.na(test1_vals))){
+      tsrpaitest_comment <- "(insufficient remeasured data)"
+    }
+  } else {
+    tsrpaitest_comment <- "No re-measured GRID samples."
+  }
+  
+  return(tsrpaitest_comment)
+  
+})

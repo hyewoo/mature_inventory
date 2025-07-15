@@ -68,8 +68,9 @@ fig8 <- reactive({
   } else {
     ggplot() + 
       theme_void(15) +
-      geom_text(aes(0,0,label='No sample impacted by fire')) +
-      xlab(NULL)
+      geom_text(aes(0,0,label='No sample impacted by fire')) + 
+      labs(x = NULL, y = NULL) + 
+      guides(x = "none", y = "none")
   }
   
   return(fig8)

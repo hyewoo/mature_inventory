@@ -9,13 +9,59 @@ output$overview_header <- renderUI({
 description <- reactive({
   req(input$SelectVar)
   
-  text <- paste0("<p>A comparison of total age, height, basal area, net 
-                 merchantable volume and species, between ground sample data 
-                 maintained by the B.C. Forest Analysis and Inventory Branch, 
-                 vs the 2023 Forest Vegetation Composite Rank 1 Layer (Inventory), 
-                 for design-based ground samples in the mature inventory 
-                 population (vegetated treed >50yr old) in <b>", 
-                 title(),"</b>.</p>  ")
+  #text <- paste0("<p>A comparison of total age, height, basal area, net 
+  #               merchantable volume and species, between ground sample data 
+  #               maintained by the B.C. Forest Analysis and Inventory Branch, 
+  #               vs the 2023 Forest Vegetation Composite Rank 1 Layer (Inventory), 
+  #               for design-based samples in the mature inventory 
+  #               population (vegetated treed >50yr old) in <b>", 
+  #               title(),"</b>.</p>",
+  #               ifelse(input$SelectVar == "Quesnel TSA", 
+  #                      "<p>The sample space for Quesnel TSA PHASE2 is confined 
+  #                      to the eastern part of the TSA, as the western region 
+  #                      lacked mature green stands at the time of the most recent 
+  #                      PHASE1 sampling due to the MPB infestation. To enhance 
+  #                      coverage, Quesnel TSA implemented intensified sampling 
+  #                      grids with supplementary (SUP) samples. This enabled the 
+  #                      delineation of three distinct assessment domains: 
+  #                      Quesnel East, assessed using PHASE2 samples; Quesnel West, 
+  #                      assessed using a combination of CMI and SUP samples; 
+  #                      and the overall Quesnel TSA, assessed using CMI samples only.</p>", ""))
+  
+  text <- paste0("<p>This document provides a high-level technical summary of 
+                 results compiled by FAIB for the mature stand ground sampling 
+                 (>50 years) from our CMI and VRI PHASE2 ground sample programs: </p>",
+                 "<ul><li><b>GRID -</b> Change Monitoring Inventory (CMI) ground 
+                 samples have been established across BC. The target population 
+                 for the CMI ground sample program is defined as all Crown 
+                 forested stands in the Vegetation Resources Inventory (VRI) 
+                 Vegcomp rank 1 layer. CMI ground samples (dots on map, below) 
+                 are established on a 20km X 20km grid [40km x 40km in the three 
+                 northernmost TSAs and one-time intensified 10km x 10km in four 
+                 TSAs (SUP-GRID)], with trees tagged in 0.04ha circular monitoring plots 
+                 with a planned ten-year re-measurement cycle.</li>",
+                 "<li><b>PHASE2 –</b> Following the completion of a photo-estimated 
+                 inventory project, Vegetation Resource Inventory (VRI) audit 
+                 plots will be established in the vegetated treed portion of the 
+                 landbase to verify the accuracy of this new spatial inventory. 
+                 VRI audit plots may be randomly established in Timber Supply 
+                 Areas (TSAs), Tree Farm Licenses (TFLs), or other strata of 
+                 interest. As an example, for a given TSA, the vegetated-treed, 
+                 the Timber Harvest Land Base (THLB) or mature spruce portion 
+                 may be sampled. Refer to the 'Reference' tab at the bottom of 
+                 the page to find links to the sample designs for each PHASE2 
+                 strata of interest.</li>",
+                 ifelse(input$SelectVar == "Quesnel TSA", 
+                        "</br><p>The sample space for Quesnel TSA PHASE2 is confined 
+                        to the eastern part of the TSA, as the western region 
+                        lacked mature green stands at the time of the most recent 
+                        PHASE1 sampling due to the MPB infestation. To enhance 
+                        coverage, Quesnel TSA implemented intensified sampling 
+                        grids with supplementary (SUP) samples. This enabled the 
+                        delineation of three distinct assessment domains: 
+                        Quesnel East, assessed using PHASE2 samples; Quesnel West, 
+                        assessed using a combination of CMI and SUP samples; 
+                        and the overall Quesnel TSA, assessed using CMI samples only.</p>", ""))
   
   return(text)
 })
@@ -60,7 +106,7 @@ samplemap <- reactive({
       group_by(SITE_IDENTIFIER) %>% 
       mutate(#SAMPLE_ESTABLISHMENT_TYPE = ifelse(SAMPLE_ESTABLISHMENT_TYPE == "NFI", "CMI",
              #                                   SAMPLE_ESTABLISHMENT_TYPE),
-             Design = ifelse(SAMPLE_ESTABLISHMENT_TYPE %in% c("CMI", "NFI"), "GRID", 
+             Design = ifelse(SAMPLE_ESTABLISHMENT_TYPE %in% c("CMI", "NFI", "CMI-E"), "GRID", 
                              ifelse(SAMPLE_ESTABLISHMENT_TYPE %in% c("SUP"), "SUP-GRID", "PHASE2")),
              Design = factor(Design, levels = c("GRID", "SUP-GRID","PHASE2")),
              design_icon = case_when(Design == "GRID" ~ 1,
@@ -178,22 +224,95 @@ output$samplemap <- renderLeaflet({
 
 
 
+samplenum <- reactive({
+  req(input$SelectVar)
+  
+  table1_dat <- sample_data %>%
+    filter(CLSTR_ID %in% clstr_id_all()) %>%
+    mutate(Design = factor(Design, levels = c("GRID", "SUP-GRID","PHASE2"))) %>%
+    group_by(Design, SITE_IDENTIFIER) %>%
+    arrange(VISIT_NUMBER) %>%
+    mutate(visit_number_new = row_number()) %>%
+    select(CLSTR_ID, Design, visit_number_new, MEAS_YR) %>%
+    group_by(Design, visit_number_new, MEAS_YR) %>% tally()
+  
+  table1_dat <- table1_dat %>%
+    arrange(MEAS_YR) %>%
+    pivot_wider(id_cols = c("Design", "visit_number_new"),
+                names_from = "MEAS_YR",
+                values_from = "n")
+  
+  table1_dat <- table1_dat %>%
+    arrange(Design, visit_number_new)
+  
+  totals <- cbind("Total", data.frame(as.list(colSums(table1_dat[,3:length(table1_dat)], na.rm = T))))
+  
+  flextable1 <- flextable(table1_dat) %>%
+    color(~ Design == "GRID", color = "brown3") %>% 
+    color(~ Design == "SUP-GRID", color = "darkgoldenrod2") %>% 
+    color(~ Design == "PHASE2", color = "chartreuse4") %>%
+    add_header_row(
+      values = c("Design","visit_number_new", "MEAS_YR"),
+      colwidths = c(1,1, length(table1_dat) -2)) %>%
+    merge_v(part = "header", j = c(1, 2))  %>%
+    merge_v(part = "body", j = 1)  %>%
+    add_footer_row(values = totals,
+                   colwidths = c(2, rep(1,length(table1_dat) -2)))
+  
+  flextable1 <- labelizor(
+    x = flextable1, 
+    part = "header", 
+    labels = c("visit_number_new" = "Meas",
+               "MEAS_YR" = "# Ground Samples by Year\n (end of growing season)"
+    )) %>%
+    bold(part = 'header', bold = TRUE) %>%
+    align(align = "center",part = 'all') %>%
+    set_caption(caption = as_paragraph(
+      as_chunk("Table 1. Number of ground samples across all measurement years.", 
+               props = fp_text_default(bold = TRUE))),
+      align_with_table = FALSE,
+      word_stylename = "Table Caption") %>%
+    #set_caption(as_paragraph(
+    #  as_b(as_chunk("Table 1. Number of ground samples across all measurement years.")))) %>%
+    autofit()
+  
+  
+  
+  return(flextable1)
+})
+
+
+
+output$samplenum <- renderUI({
+  htmltools_value(samplenum())
+})
+
+
+
 samplesize <- reactive({
   req(input$SelectVar)
   
   grid_size <- sample_data %>%
-    filter(CLSTR_ID %in% clstr_id(), Design == "GRID") %>%
-    pull(grid_size) %>%
+    filter(CLSTR_ID %in% clstr_id(), Design %in% c("GRID", "SUP-GRID")) %>%
+    select(Design, grid_size) %>%
     unique()
   
   t1_1 <- sample_data %>%
     filter(CLSTR_ID %in% clstr_id()) %>%
+    mutate(Design = factor(Design, levels = c("GRID", "SUP-GRID","PHASE2"))) %>%
     group_by(Design) %>%
     summarise(n = n(),
               max_meas_yr = max(MEAS_YR, na.rm = T)) %>%
     mutate(grid_size = ifelse(Design == "GRID", 
-                              paste0("fixed area monitoring samples on a ", grid_size, " NFI grid"),
-                              "temporary sample clusters using PPSWR selection")) %>%
+                              paste0("fixed area monitoring samples on a ", 
+                                     grid_size[grid_size$Design == "GRID",]$grid_size, 
+                                     " NFI grid"),
+                              ifelse(Design == "SUP-GRID", 
+                                     paste0("fixed area temporary samples on a ", 
+                                            grid_size[grid_size$Design == "SUP-GRID",]$grid_size, 
+                                            " supplemental grid"),
+                                     "temporary sample clusters using PPSWR selection")
+    )) %>%
     select(Design, n, grid_size, max_meas_yr) 
   
   t1 <- flextable(t1_1)
@@ -213,7 +332,6 @@ samplesize <- reactive({
       align_with_table = FALSE) %>%
     autofit()
   
-  
   return(t1)
 })
 
@@ -222,7 +340,6 @@ samplesize <- reactive({
 output$samplesize <- renderUI({
   htmltools_value(samplesize())
 })
-
 
 
 
@@ -325,28 +442,41 @@ fig2 <- reactive({
                  names_pattern = "(.*)_(.*)") %>%
     distinct() %>% data.table
   
+  design_col <- c("GRID" = "brown3", "PHASE2" = "chartreuse4")
+  quesnel_col <- c("Quesnel Overall" = "brown3",
+                   "Quesnel West" = "darkgoldenrod2",
+                   "Quesnel East" = "chartreuse4")
+  
   fig2 <- lead_vol_dat1 %>% 
     filter(var != "voldead") %>%
-    mutate(Design = factor(Design, levels = c("GRID", "PHASE2"))) %>%
+    #mutate(Design = factor(Design, levels = c("GRID", "PHASE2"))) %>%
     ggplot() +
-    geom_hline(aes(yintercept = 0.9), linetype = 3, linewidth = 1.2, col = "darkgray") +
-    geom_hline(aes(yintercept = 1.1), linetype = 3, linewidth = 1.2, col = "darkgray") +
+    geom_rect(aes(ymin = 0.9, ymax = 1.1, xmin = -Inf, xmax = Inf, fill = "ROM & ROPE")) +
+    #geom_hline(aes(yintercept = 0.9), linetype = 3, linewidth = 1.2, col = "darkgray") +
+    #geom_hline(aes(yintercept = 1.1), linetype = 3, linewidth = 1.2, col = "darkgray") +
+    geom_hline(yintercept = 1, linewidth =1.2, col = "gray30") +
     geom_point(aes(x = Design, y = rom, col = Design, group = Design), size = 3) +
     geom_point(aes(x = Design, y = l95rom, col = Design, group = Design), size = 3) +
     geom_point(aes(x = Design, y = u95rom, col = Design, group = Design), size = 3) +
     geom_segment(aes(y = l95rom, yend  = u95rom, x = Design, col = Design, group = Design), 
                  linewidth = 1.2, show.legend = TRUE) +
-    scale_x_discrete(limit = c("PHASE2", "GRID")) +
-    scale_color_manual(values = c("brown3", "chartreuse4"), drop = FALSE) +
+    #scale_x_discrete(limit = ifelse(input$SelectVar == "Quesnel TSA",
+    #                                c("Quesnel West", "Quesnel East", "Quesnel Overall"),
+    #                                c("PHASE2", "GRID"))) +
+    #scale_color_manual(values = ifelse(input$SelectVar == "Quesnel TSA",
+    #                                   quesnel_col,
+    #                                   design_col), drop = FALSE) +
+    #xlim(-1, 2) +
+    ylim(floor(min(lead_vol_dat1[lead_vol_dat1$var != "voldead",]$l95rom)/.5)*.5, 
+         ceiling(max(lead_vol_dat1[lead_vol_dat1$var != "voldead",]$u95rom)/.5)*.5) +
     coord_flip() +
-    facet_wrap(~var, scales = "free_y", ncol = 1, labeller = as_labeller(c(
+    facet_wrap(~var, scales = "free_y", ncol = 2, labeller = as_labeller(c(
       'age'="Age",
       'ba'="Basal Area",
       'ht'="Height",
       'vol'="Net Merchantable Volume"
     ))) +
-    labs(x = "", y = "ROM", colour = NULL,
-         caption = 'Figure 2. Overall Ratio of means (ground/inventory), \n95% confidence interval, & ROPE* interval for the \nlive attributes age, height, basal area & volume, \nacross each sample design.') +
+    labs(x = "", y = "ROM", colour = NULL) +
     theme(
       plot.caption = element_text(hjust = 0, size=15, face = "bold"),
       plot.caption.position = "plot",
@@ -359,6 +489,20 @@ fig2 <- reactive({
       axis.text.y = element_blank(), axis.ticks.x = element_blank()
     ) 
   
+  
+  if (input$SelectVar == "Quesnel TSA"){
+    fig2 <- fig2 +
+      scale_x_discrete(limit = c("Quesnel West", "Quesnel East", "Quesnel Overall")) +
+      scale_color_manual(values = quesnel_col, drop = FALSE)  +
+      scale_fill_manual(values = "gray90", drop = FALSE, name = NULL) 
+  } else {
+  fig2 <- fig2 +
+    scale_x_discrete(limit = c("PHASE2", "GRID")) +
+    scale_color_manual(values = design_col, drop = FALSE)  +
+    scale_fill_manual(values = "gray90", drop = FALSE, name = NULL) 
+  }
+    
+  
   return(fig2)
   
 })
@@ -367,6 +511,14 @@ fig2 <- reactive({
 output$fig2 <- renderPlot({
   
   fig2()
+  
+})
+
+output$fig2_desc <- renderUI({
+  req(input$SelectVar)
+  HTML("<h5>Figure 2. Overall Ratio of means (ground/inventory), 95% confidence 
+       interval, & ROPE* interval for the live attributes age, height, basal 
+       area & volume, across each sample design.</h5>")
   
 })
 
@@ -410,6 +562,7 @@ test1 <- reactive({
     filter(sigrope %in% c("N", "Y")) %>%
     select(Design, var, sigrope, rom) %>%
     flextable() %>%
+    merge_v(j = ~Design) %>%
     align(j = 3, align = "center", part = "body") %>%
     color(i = ~ sigrope == "N", j = 3, color = 'darkgreen', part = "body")  %>%
     color(i = ~ sigrope == "Y", j = 3, color = 'red', part = "body") %>%
@@ -457,6 +610,7 @@ test2 <- reactive({
     filter(sigrope %in% c("N", "Y")) %>%
     select(Design, var, sigrope, rom) %>%
     flextable() %>%
+    merge_v(j = ~Design) %>%
     align(j = 3, align = "center", part = "body") %>%
     color(i = ~ sigrope == "N", j = 3, color = 'darkgreen', part = "body")  %>%
     color(i = ~ sigrope == "Y", j = 3, color = 'red', part = "body") %>%
@@ -523,9 +677,65 @@ output$test3 <- renderUI({
 
 output$test_caption <- renderUI({
   req(input$SelectVar)
-  HTML(paste0("<h5>Listing of those Attributes where Ground:Inventory ratio of 
+  HTML(paste0("<h5>Listing of those attributes where Ground:Inventory ratio of 
               means are practically different (Y) or not practically different 
               (N) from 1.0. Attributes which are not listed here have 
               inconclusive (I) results.</h5>"))
+  
+})
+
+
+
+
+becplot <- reactive({
+  req(input$SelectVar)
+  if (!is.null(clstr_id())){
+    
+    figdata <- sample_data %>%
+      filter(CLSTR_ID %in% clstr_id()) %>%
+      mutate(Design = ifelse(Design %in% c("GRID", "SUP-GRID"), "GRID", "PHASE2")) %>%
+      mutate(Design = factor(Design, levels = c("GRID", "PHASE2"))) %>%
+      select(Design, BEClabel) %>%
+      table()
+    
+    figdata1 <- data.frame(figdata)
+    
+    if (dim(figdata1)[2] == 1){
+      figdata1 <- data.frame(figdata = row.names(figdata1), Freq = figdata1[1,1])
+    }
+    
+    integer_breaks <- function(n = 5, ...) {
+      fxn <- function(x) {
+        breaks <- floor(pretty(x, n, ...))
+        names(breaks) <- attr(breaks, "labels")
+        breaks
+      }
+      return(fxn)
+    }
+    
+    #p <- ggplot(data.frame(rev(sort(table(figdata)))), aes(x = figdata, y = Freq)) +
+    p <- ggplot(figdata1, aes(x = BEClabel, y = Freq)) +
+      geom_bar(stat="identity", width=0.5, fill="steelblue") +
+      facet_wrap(.~Design, drop = FALSE) +
+      scale_x_discrete(guide = guide_axis(angle = -90)) +
+      scale_y_continuous(expand = expansion(mult = c(0, 0.1)),
+                         breaks = integer_breaks()) +
+      labs(x = "", y = "# of mature samples",
+           title = "Mature Sample Distribution by BEC subzone/variant")  + 
+      theme(
+        panel.grid.major.x = element_blank(),
+        panel.grid.minor.x = element_blank(),
+        panel.grid.minor.y = element_blank(),
+        panel.grid.major.y = element_line(colour="darkgray")
+      )
+    
+  }
+  return(p)
+})
+
+
+output$bec_dist <- renderPlot({
+  
+  becplot()
   
 })
