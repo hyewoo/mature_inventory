@@ -19,7 +19,9 @@ server <- function(input, output, session) {
   #  disabledChoices = c("BEC_ZONE", "TFL")
   #)
   #}
-  
+  observeEvent(input$link_to_rope, {
+    updateTabsetPanel(session, "demo", "Stand Summaries")
+  })
   # Call reactive values and data
   source(file.path("serverscripts/react.R"), local = TRUE) 
   
@@ -40,6 +42,7 @@ server <- function(input, output, session) {
     },
     
     content = function(file) {
+      withProgress(message = 'Exporting report..', {
       src <- normalizePath('report.Rmd')
       # temporarily switch to the temp dir, in case you do not have write
       # permission to the current working directory
@@ -59,7 +62,7 @@ server <- function(input, output, session) {
         PDF = rmarkdown::pdf_document()
         #PDF = rmarkdown::pandoc_convert(rmarkdown::render('report.Rmd', "html_document"), output = 'report.pdf')
       ))
-      
+      })
       file.rename(out, file)
     }
   )

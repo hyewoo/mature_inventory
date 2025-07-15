@@ -19,7 +19,7 @@ lwr_limit = 0.9
 upr_limit = 1.1
 
 savepath <- ""
-savepath <- "D:/R/mature_inventory/files/rds/250429"
+savepath <- "D:/R/mature_inventory/files/rds/250513"
 
 
 ### 1) Import ISMC compiled ground sample data
@@ -235,19 +235,21 @@ sample_data4 <- sample_data3_5 %>%
   #filter(SAMPLE_ESTABLISHMENT_TYPE != "CMI-E") %>%
   mutate(SAMPLE_ESTABLISHMENT_TYPE = ifelse(SAMPLE_ESTABLISHMENT_TYPE == "NFI", "CMI", SAMPLE_ESTABLISHMENT_TYPE)) %>%
   ## *define design.  for specific tsas, intensified SUPplemental samples on a grid are combined with cmi;
-  mutate(Design = case_when(TSA %in% c(26, 20) & SAMPLE_ESTABLISHMENT_TYPE %in% c('CMI','SUP') ~ "GRID",
+  mutate(Design = case_when(TSA %in% c(26, 20) & SAMPLE_ESTABLISHMENT_TYPE %in% c('CMI','CMI-E') ~ "GRID",
+                            #TSA %in% c(26) & SAMPLE_ESTABLISHMENT_TYPE %in% c('SUP') ~ "GRID-SUP",
                             TSA %in% c(26, 20) & SAMPLE_ESTABLISHMENT_TYPE %in% c('VRI') ~ "PHASE2",
-                            TSA %in% c(14, 16, 23) & SAMPLE_ESTABLISHMENT_TYPE %in% c('CMI','SUP') ~ "GRID",
+                            TSA %in% c(14, 16, 23) & SAMPLE_ESTABLISHMENT_TYPE %in% c('CMI') ~ "GRID",
                             TSA %in% c(14, 16, 23) & SAMPLE_ESTABLISHMENT_TYPE %in% c('VRI') ~ "PHASE2",
                             TSA %in% c(4, 8, 43) & SAMPLE_ESTABLISHMENT_TYPE %in% c('CMI') ~ "GRID",
                             TSA %in% c(4, 8, 43) & SAMPLE_ESTABLISHMENT_TYPE %in% c('VRI') ~ "PHASE2",
                             SAMPLE_ESTABLISHMENT_TYPE %in% c('CMI') ~ "GRID",
+                            SAMPLE_ESTABLISHMENT_TYPE %in% c('SUP') ~ "SUP-GRID",
                             SAMPLE_ESTABLISHMENT_TYPE %in% c('VRI') ~ "PHASE2",
                             TRUE ~ ""),
-         grid_size = case_when(TSA %in% c(26, 20) & SAMPLE_ESTABLISHMENT_TYPE %in% c('CMI','SUP') ~ "10km*10km",
-                               TSA %in% c(14, 16, 23) & SAMPLE_ESTABLISHMENT_TYPE %in% c('CMI','SUP') ~ "10km*20km",
+         grid_size = case_when(TSA %in% c(26, 20) & SAMPLE_ESTABLISHMENT_TYPE %in% c('SUP') ~ "10km*10km",
+                               TSA %in% c(14, 16, 23) & SAMPLE_ESTABLISHMENT_TYPE %in% c('SUP') ~ "10km*20km",
                                TSA %in% c(4, 8, 43) & SAMPLE_ESTABLISHMENT_TYPE %in% c('CMI') ~ "40km*40km",
-                               SAMPLE_ESTABLISHMENT_TYPE %in% c('CMI') ~ "20km*20km",
+                               SAMPLE_ESTABLISHMENT_TYPE %in% c('CMI', 'CMI-E') ~ "20km*20km",
                                TRUE ~ "")) %>%
   # *focus on just the latest PHASE2 VRI ground sample plan per tsa, to compare against;
   # *all other vri projects were based on an earlier project in a given tsa, therefore not relevant, 
@@ -293,7 +295,7 @@ sample_data4 <- sample_data3_5 %>%
                               substr(SAMPLE_SITE_NAME, 1, 4) %in% c('0331','0332','0371') ~ "Y",
                             TRUE ~ ""
   )) %>%
-  filter(Design == "GRID" | (Design == "PHASE2" & vri_in == "Y")) #%>%
+  filter(Design %in% c("GRID", "SUP-GRID") | (Design == "PHASE2" & vri_in == "Y")) #%>%
   #filter(LAST_MSMT == "Y")
 
 
@@ -306,7 +308,7 @@ sample_data4_1 <- sample_data4 %>%
   ungroup()
 
 sample_data4_2 <- sample_data4_1 %>%
-  filter(Design == "GRID" | (Design == "PHASE2" & LAST_MSMT_new == "Y"))
+  filter(Design %in% c("GRID", "SUP-GRID") | (Design == "PHASE2" & LAST_MSMT_new == "Y"))
 
 n_by_mgmt <- sample_data4_2 %>%
   filter(LAST_MSMT_new == "Y") %>%
@@ -364,16 +366,16 @@ fire_sample1 <- fire_sample1 %>%
 sample_data6 <- sample_data5 %>%
   left_join(fire_sample1, by = c("SITE_IDENTIFIER", "CLSTR_ID")) %>%
   mutate(MEAS_YR_new = ifelse(!is.na(fire_year) & fire_year >= MEAS_YR, fire_year, MEAS_YR)) %>%
-  mutate(Latitude =  ifelse(Design == "GRID", round(Latitude, 3), Latitude),
-         Longitude =  ifelse(Design == "GRID", round(Longitude, 3), Longitude),
-         IP_NRTH =  ifelse(Design == "GRID", round(IP_NRTH, -3), IP_NRTH),
-         IP_EAST =  ifelse(Design == "GRID", round(IP_EAST, -3), IP_EAST),
-         BC_ALBERS_X  =  ifelse(Design == "GRID", round(BC_ALBERS_X, -3), BC_ALBERS_X),
-         BC_ALBERS_Y  =  ifelse(Design == "GRID", round(BC_ALBERS_Y, -3), BC_ALBERS_Y),
-         BC_Albers_X  =  ifelse(Design == "GRID", round(BC_Albers_X, -3), BC_Albers_X),
-         BC_Albers_Y  =  ifelse(Design == "GRID", round(BC_Albers_Y, -3), BC_Albers_Y),
-         UTM_Northing  =  ifelse(Design == "GRID", round(UTM_Northing, -3), UTM_Northing),
-         UTM_Easting =  ifelse(Design == "GRID", round(UTM_Easting, -3), UTM_Easting))
+  mutate(Latitude =  ifelse(Design %in% c("GRID", "SUP-GRID"), round(Latitude, 3), Latitude),
+         Longitude =  ifelse(Design %in% c("GRID", "SUP-GRID"), round(Longitude, 3), Longitude),
+         IP_NRTH =  ifelse(Design %in% c("GRID", "SUP-GRID"), round(IP_NRTH, -3), IP_NRTH),
+         IP_EAST =  ifelse(Design %in% c("GRID", "SUP-GRID"), round(IP_EAST, -3), IP_EAST),
+         BC_ALBERS_X  =  ifelse(Design %in% c("GRID", "SUP-GRID"), round(BC_ALBERS_X, -3), BC_ALBERS_X),
+         BC_ALBERS_Y  =  ifelse(Design %in% c("GRID", "SUP-GRID"), round(BC_ALBERS_Y, -3), BC_ALBERS_Y),
+         BC_Albers_X  =  ifelse(Design %in% c("GRID", "SUP-GRID"), round(BC_Albers_X, -3), BC_Albers_X),
+         BC_Albers_Y  =  ifelse(Design %in% c("GRID", "SUP-GRID"), round(BC_Albers_Y, -3), BC_Albers_Y),
+         UTM_Northing  =  ifelse(Design %in% c("GRID", "SUP-GRID"), round(UTM_Northing, -3), UTM_Northing),
+         UTM_Easting =  ifelse(Design %in% c("GRID", "SUP-GRID"), round(UTM_Easting, -3), UTM_Easting))
 
 
 sample_data7 <- sample_data6 %>%
@@ -488,6 +490,13 @@ VDYP_proj4 <- VDYP_proj3 %>%
 
 saveRDS(VDYP_proj4, paste0(savepath, "/VDYP_proj_all.rds"))
 
+prj_dat <- VDYP_proj4 %>%
+  filter(PRJ_TOTAL_AGE %in% seq(0, 500, by = 10))   %>%
+  left_join(sample_data7 %>% select(CLSTR_ID, Design), by = 'CLSTR_ID')
+
+
+saveRDS(prj_dat, paste0(savepath, "/prj_dat.rds"))
+
 #VDYP_proj5 <- VDYP_proj4 %>%
 #  filter(!is.na(CLSTR_ID)) %>%
 #  filter(ifelse(!is.na(PROJ_AGE_ADJ) & PROJ_AGE_ADJ < 526, PROJ_AGE_ADJ == PRJ_TOTAL_AGE, PRJ_TOTAL_AGE == 526))
@@ -495,6 +504,7 @@ saveRDS(VDYP_proj4, paste0(savepath, "/VDYP_proj_all.rds"))
 VDYP_proj5 <- VDYP_proj4 %>%
   filter(!is.na(CLSTR_ID), PROJ_AGE_ADJ == PRJ_TOTAL_AGE) %>%
   select(-PRJ_BA, -PRJ_TPH, -PRJ_DOM_HT, -PRJ_VOL_DWB)
+
 
 #VDYP_proj6 <- VDYP_proj5 %>%
 #  group_by(CLSTR_ID, FEATURE_ID) %>%

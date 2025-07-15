@@ -55,6 +55,8 @@ spc_vol <- readRDS("data/spc_vol.rds")
 vdyp_grd <- readRDS("data/VDYP_grd.rds")
 tree_fh_data <- readRDS("data/Tree_FH_data.rds")
 prj_dat <- readRDS("data/prj_all.rds")
+prj_msyt_vdyp <- readRDS("data/prj_msyt_vdyp.rds")
+tsr_volproj <- readRDS("data/tsr_volproj.rds")
 
 # lookups 
 spcd<-readRDS("data/spcd.rds")
@@ -129,5 +131,3 @@ pchIcons <- function(pch = 0:14, width = 30, height = 30, ...) {
   }
   files
 }
-
-

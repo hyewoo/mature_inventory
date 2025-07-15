@@ -51,6 +51,8 @@ ui <- dashboardPage(
         -webkit-box-shadow: inset 0 1px 1px rgba(0,0,0,.05);
         box-shadow: inset 0 1px 1px rgba(0,0,0,.05);}
         
+        .navbar-brand {color:#38598a;}
+        
         /*.nav-tabs>li>a {font-family: "BCSans", "Noto Sans", Verdana, Arial, sans-serif; color:#036;}
         .nav-tabs>li.active>a {font-family: "BCSans", "Noto Sans", Verdana, Arial, sans-serif; color:#036;}*/
         
@@ -92,19 +94,27 @@ ui <- dashboardPage(
           padding-bottom: 5px;
         }
         
+        a:hover {
+        color: #4b5e7e !important;
+        }
+        
+        footer ul li a:hover {
+        color: #FFFFFF !important;
+        }
+        
         h5 {
-    font-family: Arial, sans-serif;
-    font-weight: bold;  /* 400 */
-    color: black;
-  }
+        font-family: Arial, sans-serif;
+        font-weight: bold;  /* 400 */
+        color: black;
+        }
       '))),
       
       box(title ="Note: This site is currently under development.", 
+          "The information provided is preliminary and subject to change.",
           solidHeader = T, collapsible = T,status = "warning", width = NULL, collapsed=TRUE
-          #p(strong("*Note that this site is currently under development."),style = "color:red"),
           ),
       
-      box(title = "Select the area of interest", #background = "light-blue", 
+      box(title = "Select the area of interest", 
           solidHeader = TRUE, status = "primary", width = NULL,
           
           column(3, 
@@ -128,8 +138,8 @@ ui <- dashboardPage(
   <input type="radio" id="bec" name="SelectCategory" value="BEC_ZONE" disabled>
   <label for="bec" style="font-weight:normal;">By BEC zone</label><br>
   
-  <input type="radio" id="tfl" name="SelectCategory" value="TFL" disabled >
-  <label for="tfl" style="font-weight:normal;">By TFL</label>
+  <input type="radio" id="flp" name="SelectCategory" value="FLP" disabled >
+  <label for="flp" style="font-weight:normal;">By FLP</label>
   </div>  
 </div>'
                  )
@@ -143,21 +153,22 @@ ui <- dashboardPage(
           
           column(3, offset = 1, downloadButton("downloadReport", "Download report"), 
                  br(),
-                 radioButtons("format", label = tags$span(
+                 radioButtons("format", #label = tags$span(
                    "Document format", 
-                   tags$i(
-                     class = "glyphicon glyphicon-info-sign", 
-                     style = "color:#494949;",
-                     title = "Optimized for HTML"
-                   )), 
-                   c("HTML", "PDF"), inline = TRUE))
+                   #tags$i(
+                   #  class = "glyphicon glyphicon-info-sign", 
+                   #  style = "color:#494949;",
+                   #  title = "Optimized for HTML"
+                   #)
+                   #), 
+                   c("HTML"), inline = TRUE))
                  
           ), # box
       
       column(12, 
              
              navlistPanel(
-               
+               id = "demo",
                #tags$style("t{color:blue;}"), 
                
                "Overview",
@@ -167,16 +178,18 @@ ui <- dashboardPage(
                         uiOutput("description"),
                         br(),
                         uiOutput("samplemap_caption"),
-                        leafletOutput("samplemap", height = "600px"),
-                        #br(),
-                        #uiOutput("overviewflex"),
+                        withSpinner(leafletOutput("samplemap", height = "600px")),
+                        br(),
+                        uiOutput("samplenum"),
+                        br(),
+                        plotOutput("bec_dist", height = "350px"),
                         br()
                ),
                
                tabPanel(title = "Summary of Key Results",
                         #h4("Sample Size & Measurement Year by Ground Sample Design"),
                         br(),
-                        uiOutput("samplesize"),
+                        withSpinner(uiOutput("samplesize")),
                         br(),
                         fluidRow(
                           column(6,
@@ -190,28 +203,40 @@ ui <- dashboardPage(
                         ),
                         
                         #h4("Listing of those Attributes where Ground: Inventory ratio of means are practically different (Y) or not practically different (N) from 1.0. Attributes which are not listed here have inconclusive (I) results."),
+                        plotOutput("fig2", height = "350px"),
+                        uiOutput("fig2_desc"),
+                        
+                        br(),
                         uiOutput("test_caption"),
-                        fluidRow(
-                          column(6,
-                                 br(),
-                                 br(),
-                                 uiOutput("test1"),
-                                 br(),
-                                 uiOutput("test2"),
-                                 br(),
-                                 uiOutput("test3"),
-                                 br()),
-                          column(6,
-                                 plotOutput("fig2", height = "600px"),
-                                 br()),
-                        ),
+                        uiOutput("test1"),
+                        br(),
+                        uiOutput("test2"),
+                        br(),
+                        uiOutput("test3"),
+                        
                         uiOutput("rope_desc"),
+                        #column(6,
+                        #       br(),
+                        #       br(),
+                        #       uiOutput("test1"),
+                        #       br(),
+                        #       uiOutput("test2"),
+                        #       br(),
+                        #       uiOutput("test3"),
+                        #       br()),
+                        #column(6,
+                        #       plotOutput("fig2", height = "600px"),
+                        #       br()),
+               #),
+                        #uiOutput("rope_desc"),
                         br(),
                ),
+               
+               "Ground vs. Inventory",
                tabPanel(title = "Stand Summaries",
                         uiOutput("description_text"),
                         br(),
-                        uiOutput("table1"),
+                        withSpinner(uiOutput("table1")),
                         br(),
                         uiOutput("table2"),
                         br(),
@@ -220,62 +245,127 @@ ui <- dashboardPage(
                         uiOutput("table4"),
                         br(),
                ),
-               
-               "Components of Bias",
-               tabPanel(title = "Model vs Attribute Bias",
-                        uiOutput("bias_comp"),
-                        #br(),
-                        plotOutput("fig3", width = "800px", height = "300px"),
-                        fluidRow(
-                          column(6,
-                                 uiOutput("fig3_1")),
-                          column(6,
-                                 uiOutput("fig3_2"))
-                        ),
-                        uiOutput("fig3_caption"),
-                        br(),
-               ),
-               
-               "Ground vs. Inventory",
-               tabPanel(title = "Leading Species",
-                        uiOutput("spcomp_text"),
+               tabPanel(title = "Species Composition",
+                        withSpinner(uiOutput("spcomp_text")),
                         br(),
                         uiOutput("table5a"),
                         br(),
                         uiOutput("table5b"),
                         br(),
-               ),
-               tabPanel(title = "Overall Species",
-                        
-                        plotOutput("fig4", width = "800px", height = "400px"),
+                        div(withSpinner(plotOutput("fig4", width = "800px", height = "400px")), align = "center"),
                         uiOutput("fig4_flex"),
                         uiOutput("fig4_caption"),
                         br(),
                         plotOutput("fig5", width = "800px", height = "400px"),
                         uiOutput("fig5_caption"),
-                        br()
-               ),
-               tabPanel(title = "Age, Height, and Volume",
-                        uiOutput("scatter_text"),
                         br(),
-                        plotOutput("fig6", width = "800px", height = "1000px"),
+                        plotOutput("stock_table", width = "800px", height = "400px"),
+                        br(),
+               ),
+               #tabPanel(title = "Overall Species",
+               #         
+               #         div(withSpinner(plotOutput("fig4", width = "800px", height = "400px")), align = "center"),
+               #         uiOutput("fig4_flex"),
+               #         uiOutput("fig4_caption"),
+               #         br(),
+               #         plotOutput("fig5", width = "800px", height = "400px"),
+               #         uiOutput("fig5_caption"),
+               #         br()
+               #),
+               tabPanel(title = "BA, Age, Height, and Volume",
+                        actionLink("link_to_rope", "For ROPE test results, go to Table 3."),
+                        #uiOutput("scatter_text"),
+                        br(),
+                        div(withSpinner(plotOutput("fig6", width = "800px", height = "1200px")), align = "center"),
                         uiOutput("fig6_caption"),
                         br(),
                ),
                
+               "Comparison with TSR",
+               tabPanel(title = "Current Volumes",
+                        h3("Comparing Current Volumes: TSR Predicted Yield Tables vs. GRID Actual Measurements"),
+                        uiOutput("curvoltext"),
+                        br(),
+                        div(plotOutput("maturetsr", width = "700px"),
+                            br(),
+                            withSpinner(plotOutput("vol_bias", width = "700px")), align = "center"),
+                        br(),
+               ),
+               tabPanel(title = "Periodic Annual Increment",
+                        h3("Test to Compare TSR vs. Re-measured GRID Sample Periodic Annual Increment"),
+                        uiOutput("paitext"),
+                        br(),
+                        fluidRow(
+                          column(6,
+                                 uiOutput("tsr_pai_flex1"),
+                                 br()),
+                          column(6,
+                                 uiOutput("tsr_pai_flex2"),
+                                 br())
+                        ),
+                        br(),
+                        div(withSpinner(plotOutput("paidiff", height = "200px", width = "600px")), align = "center"),
+                        br(),
+               ),  
+               
+               
+               
+               
                "Standards of Data Collection",
-               tabPanel(title = "Inventory Standard Code",
+               tabPanel(title = "VRI Standard",
                         uiOutput("stdcode_text"),
                         br(),
-                        plotOutput("fig7", width = "600px", height = "200px"),
+                        div(withSpinner(plotOutput("fig7", width = "600px", height = "200px")), align = "center"),
+                        br(),
+                        uiOutput("invyear_flex"),
+                        br(),
+                        uiOutput("invyear_text"),
                         br(),
                ),
                
-               "Comparison with Growth Model",
+               "Wildfire Impact",
+               tabPanel(title = "Ground Samples Impacted by Recent Wildfires",
+                        uiOutput("fire_text"),
+                        br(),
+                        div(plotOutput("fig8", width = "500px", height = "300px"), align = "center"),
+                        br(),
+                        withSpinner(leafletOutput("firemap")),
+                        br()
+               ),
+               
+               "Forest Health",
+               tabPanel(title = "Growth and Mortality",
+                        uiOutput("coctext"),
+                        br(),
+                        div(withSpinner(plotOutput("cocfig", width = "600px")), align = "center"),
+                        br(),
+                        #leafletOutput("firemap"),
+                        #br()
+               ),
+               tabPanel(title = "Current Forest Health Incidence",
+                        uiOutput("health_inci"),
+                        br(),
+                        div(withSpinner(plotOutput("curr_fh_inci")),
+                        br(),
+                        plotOutput("sevplot", width = "500px", height = "300px"), align = "center"),
+                        br()
+               ),
+               tabPanel(title = "Change in Forest Health Incidence",
+                        uiOutput("fhcoctext1"),
+                        br(),
+                        div(withSpinner(plotOutput("cocfhplot")), align = "center"),
+                        br(),
+                        uiOutput("fhcoctext2"),
+                        br(),
+                        uiOutput("fhcocflex"),
+                        br()
+               ),
+               
+               "Comparison with VDYP",
                tabPanel(title = "Current Volume and PAI",
                         uiOutput("growth_text"),
                         br(),
-                        plotOutput("fig7_5", width = "700px"),
+                        div(withSpinner(plotOutput("fig7_5", width = "600px")), align = "center"),
                         br(),
                         uiOutput("pai_text"),
                         br(),
@@ -286,44 +376,23 @@ ui <- dashboardPage(
                                  uiOutput("pai_table2"))
                         ),
                         br(),
-               ),
-               
-               "Wildfire Impact",
-               tabPanel(title = "Ground Samples Impacted by Recent Wildfires",
-                        uiOutput("fire_text"),
-                        br(),
-                        plotOutput("fig8", width = "500px", height = "300px"),
-                        br(),
-                        leafletOutput("firemap"),
+                        div(plotOutput("pai_diff", height = "200px", width = "400px"), align = "center"),
                         br()
                ),
                
-               "Forest Health",
-               tabPanel(title = "Growth and Mortality",
-                        uiOutput("coctext"),
+               "Components of Bias",
+               tabPanel(title = "Model vs Attribute Bias",
+                        uiOutput("bias_comp"),
+                        #br(),
+                        div(withSpinner(plotOutput("fig3", width = "800px", height = "300px")), align = "center"),
+                        fluidRow(
+                          column(6,
+                                 uiOutput("fig3_1")),
+                          column(6,
+                                 uiOutput("fig3_2"))
+                        ),
+                        uiOutput("fig3_caption"),
                         br(),
-                        plotOutput("cocfig", width = "600px"),
-                        br(),
-                        #leafletOutput("firemap"),
-                        #br()
-               ),
-               tabPanel(title = "Current Forest Health Incidence",
-                        uiOutput("health_inci"),
-                        br(),
-                        plotOutput("curr_fh_inci"),
-                        br(),
-                        plotOutput("sevplot", width = "500px", height = "300px"),
-                        br()
-               ),
-               tabPanel(title = "Change in Forest Health Incidence",
-                        uiOutput("fhcoctext1"),
-                        br(),
-                        plotOutput("cocfhplot"),
-                        br(),
-                        uiOutput("fhcoctext2"),
-                        br(),
-                        uiOutput("fhcocflex"),
-                        br()
                ),
                
                "General Notes",
