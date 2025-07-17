@@ -354,7 +354,7 @@ paidiff <- reactive({
 })
 
 
-output$pai_diff <- renderPlot({
+output$paidiff <- renderPlot({
   
   paidiff()
 })
@@ -623,7 +623,7 @@ output$tsr_pai_flex2 <- renderUI({
 
 
 
-paidiff <- reactive({
+pai_diff <- reactive({
   req(input$SelectVar)
   Fig15_dat <- Fig15_dat()
   
@@ -673,7 +673,7 @@ paidiff <- reactive({
 })
 
 
-output$paidiff <- renderPlot({
+output$pai_diff <- renderPlot({
   
-  paidiff()
+  pai_diff()
 })

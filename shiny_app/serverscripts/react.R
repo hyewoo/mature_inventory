@@ -10,12 +10,25 @@ clstr_id <- reactive({
   
   req(input$SelectVar)
   
-  clstr_id <- sample_data %>% 
-    filter(TSA_DESC %in% input$SelectVar, LAST_MSMT_new == "Y") %>%
-    pull(CLSTR_ID)
+  #clstr_id <- sample_data %>% 
+  #  filter(TSA_DESC %in% input$SelectVar, LAST_MSMT_new == "Y") %>%
+  #  pull(CLSTR_ID)
+  #
+  #return(clstr_id)
   
-  return(clstr_id)
+  df <- sample_data %>%
+    filter(drop_reason != "not_VT" | is.na(drop_reason))
   
+  # Apply checkbox filter: exclude 'non_VT' if checkbox is FALSE
+  if (input$nonVT) {
+    df <- sample_data
+  }
+  
+  # Base filters based on category
+  df <- df %>%
+    filter(TSA_DESC %in% input$SelectVar, LAST_MSMT == "Y")
+  
+  return(df$CLSTR_ID)
 })
 
 
@@ -24,12 +37,24 @@ clstr_id_all <- reactive({
   
   req(input$SelectVar)
   
-  clstr_id_all <- sample_data %>% 
-    filter(TSA_DESC %in% input$SelectVar) %>%
-    pull(CLSTR_ID)
+  #clstr_id_all <- sample_data %>% 
+  #  filter(TSA_DESC %in% input$SelectVar) %>%
+  #  pull(CLSTR_ID)
+  #
+  #return(clstr_id_all)
   
-  return(clstr_id_all)
+  df <- sample_data %>% filter(drop_reason != "not_VT" | is.na(drop_reason))
   
+  # Apply checkbox filter: exclude 'non_VT' if checkbox is FALSE
+  if (input$nonVT) {
+    df <- sample_data
+  }
+  
+  # Base filters based on category
+  df <- df %>%
+    filter(TSA_DESC %in% input$SelectVar)
+  
+  return(df$CLSTR_ID)
 })
 
 
@@ -38,15 +63,33 @@ tsa30_ci <- reactive({
   
   req(input$SelectVar)
   
-  if (input$SelectVar == "Fraser TSA"){
-    
-    tsa30_ci <- sample_data %>%
-      filter(MGMT_UNIT == "TSA30_Fraser", Design == "PHASE2") %>%
-      pull(CLSTR_ID)
-    
-  } else NULL
+  #if (input$SelectVar == "Fraser TSA"){
+  #  
+  #  tsa30_ci <- sample_data %>%
+  #    filter(MGMT_UNIT == "TSA30_Fraser", Design == "PHASE2") %>%
+  #    pull(CLSTR_ID)
+  #  
+  #} else NULL
+  #
+  #return(tsa30_ci)
   
-  return(tsa30_ci)
+  if (input$SelectVar == "Fraser TSA") {
+    
+    df <- sample_data %>%
+      filter(drop_reason != "not_VT" | is.na(drop_reason)) %>%
+      filter(MGMT_UNIT == "TSA30_Fraser", Design == "PHASE2")
+    
+    # Include "non_VT" if checkbox is checked
+    if (input$nonVT) {
+      df <- sample_data %>%
+        filter(MGMT_UNIT == "TSA30_Fraser", Design == "PHASE2")
+    }
+    
+    return(df$CLSTR_ID)
+    
+  } else {
+    return(NULL)
+  }
   
 })
 
@@ -88,48 +131,49 @@ sample_tsa30 <- reactive({
 sample_quesnel <- reactive({
   req(input$SelectVar)
   
-  if (input$SelectVar == "Quesnel TSA"){
-    sample_quesnel <- sample_data %>%
-      filter(MGMT_UNIT == "TSA26_Quesnel") %>%
-      mutate(`Quesnel West` = SAMPLE_ESTABLISHMENT_TYPE %in% c('CMI', 'SUP'),
-             `Quesnel East` = SAMPLE_ESTABLISHMENT_TYPE %in% c('VRI'),
-             `Quesnel Overall` = SAMPLE_ESTABLISHMENT_TYPE %in% c('CMI', 'CMI-E')) %>% 
-      gather(group, keep, `Quesnel West`,`Quesnel East`, `Quesnel Overall`) %>% 
-      filter(keep) %>% 
-      mutate(Design = factor(group, levels = c("Quesnel West", "Quesnel East", "Quesnel Overall"))) 
-  } else NULL
+  #if (input$SelectVar == "Quesnel TSA"){
+  #  sample_quesnel <- sample_data %>%
+  #    filter(MGMT_UNIT == "TSA26_Quesnel") %>%
+  #    mutate(`Quesnel West` = SAMPLE_ESTABLISHMENT_TYPE %in% c('CMI', 'SUP'),
+  #           `Quesnel East` = SAMPLE_ESTABLISHMENT_TYPE %in% c('VRI'),
+  #           `Quesnel Overall` = SAMPLE_ESTABLISHMENT_TYPE %in% c('CMI', 'CMI-E')) %>% 
+  #    gather(group, keep, `Quesnel West`,`Quesnel East`, `Quesnel Overall`) %>% 
+  #    filter(keep) %>% 
+  #    mutate(Design = factor(group, levels = c("Quesnel West", "Quesnel East", "Quesnel Overall"))) 
+  #} else NULL
+  #
+  #return(sample_quesnel)
   
-  return(sample_quesnel)
+  if (input$SelectVar == "Quesnel TSA") {
+    df <- sample_data %>%
+      filter(drop_reason != "not_VT" | is.na(drop_reason)) %>%
+      filter(MGMT_UNIT == "TSA26_Quesnel")
+    
+    # Exclude "non_VT" if checkbox is unchecked
+    if (input$nonVT) {
+      df <- sample_data %>%
+        filter(MGMT_UNIT == "TSA26_Quesnel")
+    }
+    
+    sample_quesnel <- df %>%
+      mutate(
+        `Quesnel West` = SAMPLE_ESTABLISHMENT_TYPE %in% c('CMI', 'SUP'),
+        `Quesnel East` = SAMPLE_ESTABLISHMENT_TYPE %in% c('VRI'),
+        `Quesnel Overall` = SAMPLE_ESTABLISHMENT_TYPE %in% c('CMI', 'CMI-E')
+      ) %>% 
+      tidyr::gather(group, keep, `Quesnel West`, `Quesnel East`, `Quesnel Overall`) %>% 
+      filter(keep) %>% 
+      mutate(Design = factor(group, levels = c("Quesnel West", "Quesnel East", "Quesnel Overall")))
+    
+    return(sample_quesnel)
+    
+  } else {
+    return(NULL)
+  }
   
 })
 
 
-#sample_data1 <- reactive({
-#  req(input$SelectVar)
-#  
-#  if (input$SelectVar == "Quesnel TSA"){
-#    
-#    sample_data1 <- sample_data %>%
-#      filter(MGMT_UNIT == "TSA26_Quesnel") %>%
-#      mutate(`Quesnel West` = SAMPLE_ESTABLISHMENT_TYPE %in% c('CMI', 'SUP'),
-#             `Quesnel East` = SAMPLE_ESTABLISHMENT_TYPE %in% c('VRI'),
-#             `Quesnel Overall` = SAMPLE_ESTABLISHMENT_TYPE %in% c('CMI', 'CMI-E')) %>% 
-#      gather(group, keep, `Quesnel West`,`Quesnel East`, `Quesnel Overall`) %>% 
-#      filter(keep) %>% 
-#      mutate(Design = factor(group, levels = c("Quesnel West", "Quesnel East", "Quesnel Overall"))) %>% 
-#      filter(CLSTR_ID %in%  clstr_id_all())
-#    
-#  } else {
-#    sample_data1 <- sample_data %>%
-#      filter(CLSTR_ID %in%  clstr_id_all())
-#  }
-#  
-#  return(sample_data1)
-#})
-#
-#
-#
-#
 lead_vol1 <- reactive({
   req(input$SelectVar)
   
@@ -901,38 +945,90 @@ bias_source <- reactive({
 
 clstr_id_grid_all <- reactive({
   
+  #req(input$SelectVar)
+  #
+  #clstr_id_grid_all <- sample_data %>% 
+  #  filter(TSA_DESC %in% input$SelectVar, Design %in% c("GRID", "SUP-GRID")) %>%
+  #  pull(CLSTR_ID)
+  #
+  #return(clstr_id_grid_all)
+  
   req(input$SelectVar)
   
-  clstr_id_grid_all <- sample_data %>% 
-    filter(TSA_DESC %in% input$SelectVar, Design %in% c("GRID", "SUP-GRID")) %>%
-    pull(CLSTR_ID)
+  df <- sample_data %>%
+    filter(drop_reason != "not_VT" | is.na(drop_reason)) %>%
+    filter(TSA_DESC %in% input$SelectVar, Design %in% c("GRID", "SUP-GRID"))
   
-  return(clstr_id_grid_all)
+  if (input$nonVT) {
+    df <- sample_data %>%
+      filter(TSA_DESC %in% input$SelectVar, Design %in% c("GRID", "SUP-GRID"))
+  }
+  
+  return(df$CLSTR_ID)
   
 })
 
 clstr_id_grid <- reactive({
   
+  #req(input$SelectVar)
+  #
+  #clstr_id_grid <- sample_data %>% 
+  #  filter(TSA_DESC %in% input$SelectVar, Design %in% c("GRID", "SUP-GRID"), LAST_MSMT_new == "Y") %>%
+  #  pull(CLSTR_ID)
+  #
+  #return(clstr_id_grid)
+  
   req(input$SelectVar)
   
-  clstr_id_grid <- sample_data %>% 
-    filter(TSA_DESC %in% input$SelectVar, Design %in% c("GRID", "SUP-GRID"), LAST_MSMT_new == "Y") %>%
-    pull(CLSTR_ID)
+  df <- sample_data %>%
+    filter(drop_reason != "not_VT" | is.na(drop_reason)) %>%
+    filter(TSA_DESC %in% input$SelectVar,
+           Design %in% c("GRID", "SUP-GRID"),
+           LAST_MSMT_new == "Y")
   
-  return(clstr_id_grid)
+  if (input$nonVT) {
+    df <- sample_data %>%
+      filter(TSA_DESC %in% input$SelectVar,
+             Design %in% c("GRID", "SUP-GRID"),
+             LAST_MSMT_new == "Y")
+  }
+  
+  return(df$CLSTR_ID)
   
 })
 
 
 clstr_id_last2 <- reactive({
   
+  #req(input$SelectVar)
+  #
+  #clstr_id_last2 <- sample_data %>% 
+  #  filter(TSA_DESC %in% input$SelectVar, Design %in% c("GRID", "SUP-GRID")) %>%
+  #  group_by(SITE_IDENTIFIER) %>%
+  #  filter(n() > 1) %>% 
+  #  arrange(VISIT_NUMBER) %>% 
+  #  slice_tail(n = 2) %>%
+  #  pull(CLSTR_ID)
+  #
+  #return(clstr_id_last2)
+  
   req(input$SelectVar)
   
-  clstr_id_last2 <- sample_data %>% 
-    filter(TSA_DESC %in% input$SelectVar, Design %in% c("GRID", "SUP-GRID")) %>%
+  df <- sample_data %>%
+    filter(drop_reason != "not_VT" | is.na(drop_reason)) %>%
+    filter(TSA_DESC %in% input$SelectVar,
+           Design %in% c("GRID", "SUP-GRID"))
+  
+  if (input$nonVT) {
+    df <- sample_data %>%
+      filter(TSA_DESC %in% input$SelectVar,
+             Design %in% c("GRID", "SUP-GRID"))
+  }
+  
+  clstr_id_last2 <- df %>%
     group_by(SITE_IDENTIFIER) %>%
-    filter(n() > 1) %>% 
-    arrange(VISIT_NUMBER) %>% 
+    filter(n() > 1) %>%
+    arrange(VISIT_NUMBER) %>%
     slice_tail(n = 2) %>%
     pull(CLSTR_ID)
   
@@ -944,10 +1040,25 @@ clstr_id_last2 <- reactive({
 
 remeas_plot <- reactive({
   
+  #req(input$SelectVar)
+  #
+  #remeas_plot <- sample_data %>% 
+  #  filter(CLSTR_ID %in% clstr_id_last2()) %>%
+  #  group_by(SITE_IDENTIFIER) %>%
+  #  arrange(VISIT_NUMBER) %>%
+  #  mutate(meas_no = row_number()) %>%
+  #  filter(meas_no == max(meas_no), meas_no != 1) %>%
+  #  ungroup() %>%
+  #  pull(CLSTR_ID)
+  #
+  #return(remeas_plot)
+  
   req(input$SelectVar)
   
-  remeas_plot <- sample_data %>% 
-    filter(CLSTR_ID %in% clstr_id_last2()) %>%
+  df <- sample_data %>%
+    filter(CLSTR_ID %in% clstr_id_last2())
+  
+  remeas_plot <- df %>%
     group_by(SITE_IDENTIFIER) %>%
     arrange(VISIT_NUMBER) %>%
     mutate(meas_no = row_number()) %>%
