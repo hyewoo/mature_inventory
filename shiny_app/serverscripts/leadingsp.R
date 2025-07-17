@@ -24,7 +24,7 @@ ld_table1 <- reactive({
     filter(CLSTR_ID %in% clstr_id()) 
   
   LD_table <- proc_freq(#LD_data[LD_data$Design == "GRID",], "SPC_GRP2", "SPC_GRP1",
-                        LD_data[LD_data$Design == "GRID",], "SPECIES_INV", "SPECIES",
+                        LD_data[LD_data$Design %in% c("GRID", "SUP-GRID"),], "SPECIES_INV", "SPECIES",
                         include.row_total = T,
                         include.row_percent = F,
                         include.column_total = T,
