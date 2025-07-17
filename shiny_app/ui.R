@@ -117,7 +117,7 @@ ui <- dashboardPage(
       box(title = "Select the area of interest", 
           solidHeader = TRUE, status = "primary", width = NULL,
           
-          column(3, 
+          column(4, #offset = 0, 
                  #list(tags$div(align = 'left', 
                  #              class = 'multicol', 
                  #              radioButtons("SelectCategory", "Strata",
@@ -129,7 +129,8 @@ ui <- dashboardPage(
                  #                           selected = "TSA_DESC"),
                  #              style = "font-size:100%", align = "center"))
                  
-                 HTML('<div align="left" class="multicol" style="font-size:100%; text-align:left;">
+                 column(5, offset = 0, 
+                        HTML('<div align="left" class="multicol" style="font-size:100%; text-align:left;">
   <label for="SelectCategory">Strata</label><br>
   <div style="line-height:1; margin-bottom:1px;">
   <input type="radio" id="tsa" name="SelectCategory" value="TSA_DESC" checked>
@@ -142,16 +143,29 @@ ui <- dashboardPage(
   <label for="flp" style="font-weight:normal;">By FLP</label>
   </div>  
 </div>'
+                        )
+                 ),
+                 
+                 column(7, offset = 0, 
+                        div(
+                          style = "margin-top: 25px;",
+                          checkboxInput(inputId = "nonVT",
+                                        label = HTML("<font size='-1'>Include non-treed samples</font>
+                                                     <i class='glyphicon glyphicon-info-sign' 
+            style='color:#494949;' 
+            title='Uncheck for TSR'></i>"),
+                                        value = FALSE),
+                        )
                  )
-                 ), 
+          ), 
           
           
-          column(3, offset = 1, selectInput(inputId = "SelectVar",
+          column(3, offset = 0, selectInput(inputId = "SelectVar",
                                             label = "Select",
                                             choices = c(Choose = "", tsa_list)), 
                  HTML("<font size='-1'>*only n&ge;8 are selectable.</font>")),
           
-          column(3, offset = 1, downloadButton("downloadReport", "Download report"), 
+          column(2, offset = 1, downloadButton("downloadReport", "Download report"), 
                  br(),
                  radioButtons("format", #label = tags$span(
                    "Document format", 
@@ -187,22 +201,18 @@ ui <- dashboardPage(
                ),
                
                tabPanel(title = "Summary of Key Results",
-                        #h4("Sample Size & Measurement Year by Ground Sample Design"),
                         br(),
                         withSpinner(uiOutput("samplesize")),
                         br(),
                         fluidRow(
                           column(6,
-                                 #h4("Leading Species Agreement (Inventory vs. Ground)"),
                                  uiOutput("spcagree1"),
                                  br()),
                           column(6,
-                                 #h4("Overall Species Agreement (Inventory vs. Ground)"),
                                  uiOutput("spcagree2"),
                                  br())
                         ),
                         
-                        #h4("Listing of those Attributes where Ground: Inventory ratio of means are practically different (Y) or not practically different (N) from 1.0. Attributes which are not listed here have inconclusive (I) results."),
                         plotOutput("fig2", height = "350px"),
                         uiOutput("fig2_desc"),
                         
@@ -215,20 +225,6 @@ ui <- dashboardPage(
                         uiOutput("test3"),
                         
                         uiOutput("rope_desc"),
-                        #column(6,
-                        #       br(),
-                        #       br(),
-                        #       uiOutput("test1"),
-                        #       br(),
-                        #       uiOutput("test2"),
-                        #       br(),
-                        #       uiOutput("test3"),
-                        #       br()),
-                        #column(6,
-                        #       plotOutput("fig2", height = "600px"),
-                        #       br()),
-               #),
-                        #uiOutput("rope_desc"),
                         br(),
                ),
                
@@ -272,7 +268,7 @@ ui <- dashboardPage(
                #         uiOutput("fig5_caption"),
                #         br()
                #),
-               tabPanel(title = "BA, Age, Height, and Volume",
+               tabPanel(title = "Age, BA, Height, and Volume",
                         actionLink("link_to_rope", "For ROPE test results, go to Table 3."),
                         #uiOutput("scatter_text"),
                         br(),
@@ -304,7 +300,7 @@ ui <- dashboardPage(
                                  br())
                         ),
                         br(),
-                        div(withSpinner(plotOutput("paidiff", height = "200px", width = "600px")), align = "center"),
+                        div(withSpinner(plotOutput("pai_diff", height = "200px", width = "400px")), align = "center"),
                         br(),
                ),  
                
@@ -376,7 +372,7 @@ ui <- dashboardPage(
                                  uiOutput("pai_table2"))
                         ),
                         br(),
-                        div(plotOutput("pai_diff", height = "200px", width = "400px"), align = "center"),
+                        div(plotOutput("paidiff", height = "200px", width = "400px"), align = "center"),
                         br()
                ),
                

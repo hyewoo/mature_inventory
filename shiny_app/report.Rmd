@@ -6,11 +6,12 @@ date: "Version 2025-07-15; Created `r Sys.Date()`"
 always_allow_html: true
 geometry: margin=1cm
 output:
+  html_document:
+    toc: true
+    toc_float: true
   pdf_document:
     keep_tex: true
     latex_engine: xelatex
-    toc: true
-  html_document:
     toc: true
 ---
 
@@ -45,7 +46,13 @@ library(shiny)
     margin: auto;
 }
 </style>
-
+```{r}
+if (input$nonVT) {
+   HTML('<div style="background-color: #ffffcc; padding: 10px; border-left: 5px solid #cccc00;">
+        <strong>Note:</strong> The analysis in this report includes non-treed samples.
+      </div>')
+}
+```
 
 ## Overview
 
@@ -58,10 +65,10 @@ library(shiny)
 ```{r samplemap, fig.width=8, echo=FALSE, fig.align='center'}
 samplemap()
 ```
-<br>
 
-| **Figure 1. Overview map of `r title()`, with ground sample plot locations colour-coded by sample design. The PHASE2 sample design plot locations are the actual spatial coordinates while the GRID sample design plots are generalized to the nearest 1*1km BC Albers grid location in the overview map.**
-  
+<br>
+<div style="font-weight: bold; text-align: left;"> Figure 1. Overview map with ground sample plot locations colour-coded by sample design. The PHASE2 sample design plot locations are the actual spatial coordinates while the GRID sample design plots are generalized to the nearest 1×1 km BC Albers grid location in the overview map. </div>
+
 <br>
 
 ```{r, include=T, echo=F,warning=FALSE, message = FALSE}
