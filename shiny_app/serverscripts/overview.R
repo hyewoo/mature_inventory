@@ -37,8 +37,8 @@ description <- reactive({
                  forested stands in the Vegetation Resources Inventory (VRI) 
                  Vegcomp rank 1 layer. CMI ground samples (dots on map, below) 
                  are established on a 20km X 20km grid [40km x 40km in the three 
-                 northernmost TSAs and one-time intensified 10km x 10km in four 
-                 TSAs (SUP-GRID)], with trees tagged in 0.04ha circular monitoring plots 
+                 northernmost TSAs and one-time intensified grid; 10km x 10km in two and 10km x 20km in three 
+                 TSAs (<b>SUP-GRID</b>)], with trees tagged in 0.04ha circular monitoring plots 
                  with a planned ten-year re-measurement cycle.</li>",
                  "<li><b>PHASE2 –</b> Following the completion of a photo-estimated 
                  inventory project, Vegetation Resource Inventory (VRI) audit 
@@ -50,7 +50,7 @@ description <- reactive({
                  the Timber Harvest Land Base (THLB) or mature spruce portion 
                  may be sampled. Refer to the 'Reference' tab at the bottom of 
                  the page to find links to the sample designs for each PHASE2 
-                 strata of interest.</li>",
+                 strata of interest.</li></ul>",
                  ifelse(input$SelectVar == "Quesnel TSA", 
                         "</br><p>The sample space for Quesnel TSA PHASE2 is confined 
                         to the eastern part of the TSA, as the western region 
@@ -61,7 +61,14 @@ description <- reactive({
                         delineation of three distinct assessment domains: 
                         Quesnel East, assessed using PHASE2 samples; Quesnel West, 
                         assessed using a combination of CMI and SUP samples; 
-                        and the overall Quesnel TSA, assessed using CMI samples only.</p>", ""))
+                        and the overall Quesnel TSA, assessed using CMI samples only.</p>", ""),
+                 "<p>Some key objectives of this document are to: describe the 
+                 characteristics and structure of mature stands, report on forest 
+                 health condition, compare stand attributes of ground samples and 
+                 Vegetation Resources Inventory (VRI), and estimate volume growth 
+                 using growth models.</p>",
+                 "<p>For summaries related to young stand ground sampling (15–50 years), 
+                 please visit <a href='https://bcgov-env.shinyapps.io/YSM_techrep/' target='_blank'>YSM Technical Report</a>.</p>")
   
   return(text)
 })
@@ -77,7 +84,8 @@ output$samplemap_caption <- renderUI({
               ", with ground sample plot locations colour-coded by sample design. 
               The PHASE2 sample design plot locations are the actual spatial 
               coordinates while the GRID sample design plots are generalized to 
-              the nearest 1*1km BC Albers grid location in the overview map. </h5>"))
+              the nearest 1*1km BC Albers grid location in the overview map. 
+              Stand attributes are based on the latest measurement.</h5>"))
   
 })
 
@@ -123,7 +131,7 @@ samplemap <- reactive({
       distinct() %>%
       left_join(lead_vol %>% 
                   filter(CLSTR_ID %in% clstr_id()) %>%
-                  select(SITE_IDENTIFIER, SPECIES, AGET_TLSO, NTWB_NVAF_LS),
+                  select(SITE_IDENTIFIER, SPECIES, AGET_TLSO, HT_TLSO, BA_HA_LS, NTWB_NVAF_LS, SPB_CPCT_LS),
                 by = "SITE_IDENTIFIER")
     
     location <- st_as_sf(x = location,                         
@@ -197,9 +205,12 @@ samplemap <- reactive({
                                      #paste("<b>BEC variant</b> - ", location$BEC_VAR, "<br/>"), 
                                      paste("<b># of measures</b>: ", location$visit_num, "<br/>"),
                                      paste("<b>Visited year</b>: ",location$visit_year, "<br/>"),
-                                     paste("<b>Leading species</b>: ",location$SPECIES, "<br/>"),
+                                     #paste("<b>Leading species</b>: ",location$SPECIES, "<br/>"),
+                                     paste("<b>Species composition</b>: ",location$SPB_CPCT_LS, "<br/>"),
                                      paste("<b>Total age of leading species</b>: ",location$AGET_TLSO, "(yrs)<br/>"),
-                                     paste("<b>Live total volume</b>: ",round(location$NTWB_NVAF_LS, 1), 
+                                     paste("<b>Top height of leading species</b>: ",location$HT_TLSO, "(m)<br/>"),
+                                     paste("<b>Live basal area</b>: ",location$BA_HA_LS, "(sq m)<br/>"),
+                                     paste("<b>Live net merch volume</b>: ",round(location$NTWB_NVAF_LS, 1), 
                                            "(cubic m)<br/>")))) %>%
       addLegend(data = location,
                 position = "bottomright",
@@ -289,27 +300,46 @@ output$samplenum <- renderUI({
 
 
 
+
+
+
 samplesize <- reactive({
   req(input$SelectVar)
   
-  grid_size <- sample_data %>%
-    filter(CLSTR_ID %in% clstr_id(), Design %in% c("GRID", "SUP-GRID")) %>%
-    select(Design, grid_size) %>%
-    unique()
+  if (input$SelectVar == "Quesnel TSA"){
+    
+    grid_size <- sample_quesnel() %>%
+      filter(CLSTR_ID %in% clstr_id()) %>%
+      select(Design, grid_size) %>%
+      unique()
+    
+    t1_dat <- sample_quesnel() %>%
+      filter(CLSTR_ID %in% clstr_id())
+    
+  } else {
+    
+    grid_size <- sample_data %>%
+      filter(CLSTR_ID %in% clstr_id(), Design %in% c("GRID", "SUP-GRID")) %>%
+      select(Design, grid_size) %>%
+      unique()
+    
+    t1_dat <- sample_data %>%
+      filter(CLSTR_ID %in% clstr_id()) %>%
+      mutate(Design = factor(Design, levels = c("GRID", "SUP-GRID","PHASE2"))) 
+  }
+
   
-  t1_1 <- sample_data %>%
-    filter(CLSTR_ID %in% clstr_id()) %>%
-    mutate(Design = factor(Design, levels = c("GRID", "SUP-GRID","PHASE2"))) %>%
+  t1_1 <- t1_dat %>%
     group_by(Design) %>%
     summarise(n = n(),
               max_meas_yr = max(MEAS_YR, na.rm = T)) %>%
-    mutate(grid_size = ifelse(Design == "GRID", 
+    mutate(grid_size = ifelse(Design %in% c("GRID", "Quesnel Overall"), 
                               paste0("fixed area monitoring samples on a ", 
-                                     grid_size[grid_size$Design == "GRID",]$grid_size, 
+                                     grid_size[grid_size$Design %in% c("GRID", "Quesnel Overall"),]$grid_size, 
                                      " NFI grid"),
-                              ifelse(Design == "SUP-GRID", 
+                              ifelse(Design %in% c("SUP-GRID", "Quesnel West"), 
                                      paste0("fixed area temporary samples on a ", 
-                                            grid_size[grid_size$Design == "SUP-GRID",]$grid_size, 
+                                            grid_size[grid_size$Design %in% c("SUP-GRID", "Quesnel West"),]$grid_size, 
                                             " supplemental grid"),
                                      "temporary sample clusters using PPSWR selection")
     )) %>%
@@ -451,7 +481,7 @@ fig2 <- reactive({
     filter(var != "voldead") %>%
     #mutate(Design = factor(Design, levels = c("GRID", "PHASE2"))) %>%
     ggplot() +
-    geom_rect(aes(ymin = 0.9, ymax = 1.1, xmin = -Inf, xmax = Inf, fill = "ROM & ROPE")) +
+    geom_rect(aes(ymin = 0.9, ymax = 1.1, xmin = -Inf, xmax = Inf, fill = "ROPE")) +
     #geom_hline(aes(yintercept = 0.9), linetype = 3, linewidth = 1.2, col = "darkgray") +
     #geom_hline(aes(yintercept = 1.1), linetype = 3, linewidth = 1.2, col = "darkgray") +
     geom_hline(yintercept = 1, linewidth =1.2, col = "gray30") +
@@ -468,13 +498,15 @@ fig2 <- reactive({
     #                                   design_col), drop = FALSE) +
     #xlim(-1, 2) +
     ylim(floor(min(lead_vol_dat1[lead_vol_dat1$var != "voldead",]$l95rom)/.5)*.5, 
-         ceiling(max(lead_vol_dat1[lead_vol_dat1$var != "voldead",]$u95rom)/.5)*.5) +
+         max(ceiling(max(lead_vol_dat1[lead_vol_dat1$var != "voldead",]$u95rom)/.5)*.5, 
+             1+ floor(min(lead_vol_dat1[lead_vol_dat1$var != "voldead",]$l95rom)/.5)*.5)) +
     coord_flip() +
     facet_wrap(~var, scales = "free_y", ncol = 2, labeller = as_labeller(c(
       'age'="Age",
       'ba'="Basal Area",
       'ht'="Height",
-      'vol'="Net Merchantable Volume"
+      'vol'="Net Merchantable Volume",
+      'voldead' = "Dead Volume"
     ))) +
     labs(x = "", y = "ROM", colour = NULL) +
     theme(
@@ -516,7 +548,7 @@ output$fig2 <- renderPlot({
 
 output$fig2_desc <- renderUI({
   req(input$SelectVar)
-  HTML("<h5>Figure 2. Overall Ratio of means (ground/inventory), 95% confidence 
+  HTML("<h5>Overall Ratio of means (ground/inventory), 95% confidence 
        interval, & ROPE* interval for the live attributes age, height, basal 
        area & volume, across each sample design.</h5>")
   
@@ -570,7 +602,7 @@ test1 <- reactive({
     bg(i = ~ sigrope == "Y", j = 3, bg = "pink1", part = "body") %>%
     set_header_labels(
       values = list(var = "Attr.", sigrope = "Diff?", rom = "Ratio")) %>%
-    add_header_lines(values = c("Overall Age, Ht, Volume Tests")) %>%
+    add_header_lines(values = c("Overall Age, BA, Ht, Volume Tests")) %>%
     bold(part = 'header', bold = TRUE) %>%
     autofit()
   
@@ -720,8 +752,9 @@ becplot <- reactive({
       scale_x_discrete(guide = guide_axis(angle = -90)) +
       scale_y_continuous(expand = expansion(mult = c(0, 0.1)),
                          breaks = integer_breaks()) +
-      labs(x = "", y = "# of mature samples",
-           title = "Mature Sample Distribution by BEC subzone/variant")  + 
+      labs(x = "", y = "# of mature samples"#,
+           #title = "Mature Sample Distribution by BEC subzone/variant"
+           )  + 
       theme(
         panel.grid.major.x = element_blank(),
         panel.grid.minor.x = element_blank(),
@@ -737,5 +770,11 @@ becplot <- reactive({
 output$bec_dist <- renderPlot({
   
   becplot()
+  
+})
+
+output$bec_caption <- renderUI({
+  req(input$SelectVar)
+  HTML(paste0("<h5>Figure 2. Mature Sample Distribution by BEC subzone/variant, based on last measurement.</h5>"))
   
 })

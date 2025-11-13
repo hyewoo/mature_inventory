@@ -5,10 +5,14 @@
 ##############################################
 server <- function(input, output, session) {
   
-  #runjs("$(\"input[name='SelectCategory'][value='BEC_ZONE']\").parent().attr('disabled', true);")
-  
   observeEvent(input$link_to_rope, {
     updateTabsetPanel(session, "demo", "Stand Summaries")
+  })
+  observeEvent(input$link_to_sp, {
+    updateTabsetPanel(session, "demo", "Species Composition")
+  })
+  observeEvent(input$link_to_gn, {
+    updateTabsetPanel(session, "demo", "Tree Species and Damage Agents")
   })
   
   # Call reactive values and data
@@ -38,20 +42,15 @@ server <- function(input, output, session) {
         owd <- setwd(tempdir())
         on.exit(setwd(owd))
         file.copy(src, 'report.Rmd', overwrite = TRUE)
-        
-        ## Create a Progress object
-        #progress <- shiny::Progress$new()
-        ## Make sure it closes when we exit this reactive, even if there's an error
-        #on.exit(progress$close())
-        #progress$set(message = "Creating report", value = 10)
-        
-        out <- rmarkdown::render('report.Rmd', 
-                                 switch(
-                                   input$format,
-                                   HTML = rmarkdown::html_document(),
-                                   PDF = rmarkdown::pdf_document()
-                                   #PDF = rmarkdown::pandoc_convert(rmarkdown::render('report.Rmd', "html_document"), output = 'report.pdf')
-                                 ))
+      
+        out <- rmarkdown::render('report.Rmd', output_format = "html_document"
+                                 #switch(
+                                 #  input$format,
+                                 #  HTML = rmarkdown::html_document(),
+                                 #  PDF = rmarkdown::pdf_document()
+                                 #  #PDF = rmarkdown::pandoc_convert(rmarkdown::render('report.Rmd', "html_document"), output = 'report.pdf')
+                                 #)
+                                 )
       })
       file.rename(out, file)
     }

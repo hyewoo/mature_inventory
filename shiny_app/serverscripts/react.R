@@ -21,7 +21,8 @@ clstr_id <- reactive({
   
   # Apply checkbox filter: exclude 'non_VT' if checkbox is FALSE
   if (input$nonVT) {
-    df <- sample_data
+    df <- sample_data %>%
+      filter(!(drop_reason == "not_VT" & SAMPLE_ESTABLISHMENT_TYPE == "VRI")) 
   }
   
   # Base filters based on category
@@ -47,7 +48,8 @@ clstr_id_all <- reactive({
   
   # Apply checkbox filter: exclude 'non_VT' if checkbox is FALSE
   if (input$nonVT) {
-    df <- sample_data
+    df <- sample_data %>%
+      filter(!(drop_reason == "not_VT" & SAMPLE_ESTABLISHMENT_TYPE == "VRI")) 
   }
   
   # Base filters based on category
@@ -81,7 +83,8 @@ tsa30_ci <- reactive({
     
     # Include "non_VT" if checkbox is checked
     if (input$nonVT) {
-      df <- sample_data %>%
+      df <- sample_data  %>%
+        filter(!(drop_reason == "not_VT" & SAMPLE_ESTABLISHMENT_TYPE == "VRI")) %>%
         filter(MGMT_UNIT == "TSA30_Fraser", Design == "PHASE2")
     }
     
@@ -181,11 +184,23 @@ lead_vol1 <- reactive({
     
     lead_vol1 <- sample_quesnel() %>%
       select(CLSTR_ID, Design) %>%
-      left_join(lead_vol %>% select(-Design), by = "CLSTR_ID")
+      left_join(lead_vol %>% select(-Design), by = "CLSTR_ID") 
     
   } else lead_vol1 <- lead_vol %>%
       mutate(Design = ifelse(Design %in% c("GRID", "SUP-GRID"), "GRID", "PHASE2")) %>%
       mutate(Design = factor(Design, levels = c("GRID", "PHASE2")))
+  
+  lead_vol1 <- lead_vol1 %>%
+      mutate(BA_HA_LS_old = BA_HA_LS,
+             STEMS_HA_LS_old = STEMS_HA_LS,
+             NTWB_NVAF_LS_old = NTWB_NVAF_LS,
+             BA_HA_LS = ifelse(!is.na(fire_year) & fire_year >= MEAS_YR, 
+                               BA_HA_LS * (1-ba_mortality), BA_HA_LS),
+             STEMS_HA_LS = ifelse(!is.na(fire_year) & fire_year >= MEAS_YR, 
+                                  STEMS_HA_LS * (1-stem_mortality), STEMS_HA_LS),
+             NTWB_NVAF_LS = ifelse(!is.na(fire_year) & fire_year >= MEAS_YR, 
+                                   NTWB_NVAF_LS * (1-ntwb_mortality), NTWB_NVAF_LS)
+      )
   
   return(lead_vol1)
 })
@@ -197,11 +212,23 @@ spc_vol1 <- reactive({
     
     spc_vol1 <- sample_quesnel() %>%
       select(CLSTR_ID, Design) %>%
-      left_join(spc_vol %>% select(-Design), by = "CLSTR_ID")
+      left_join(spc_vol %>% select(-Design), by = "CLSTR_ID") %>%
+      left_join(lead_vol %>% select(CLSTR_ID, MEAS_YR, fire_year:ntwb_mortality),
+                by = "CLSTR_ID") %>%
+      mutate(LIVE_VOL_PER_HA_old = LIVE_VOL_PER_HA,
+             LIVE_VOL_PER_HA = ifelse(!is.na(fire_year) & fire_year >= MEAS_YR, 
+                                      LIVE_VOL_PER_HA_old * (1-ntwb_mortality), LIVE_VOL_PER_HA_old)
+      )
     
   } else spc_vol1 <- spc_vol %>%
       mutate(Design = ifelse(Design %in% c("GRID", "SUP-GRID"), "GRID", "PHASE2")) %>%
-      mutate(Design = factor(Design, levels = c("GRID", "PHASE2")))
+      mutate(Design = factor(Design, levels = c("GRID", "PHASE2"))) %>%
+      left_join(lead_vol %>% select(CLSTR_ID, MEAS_YR, fire_year:ntwb_mortality),
+                by = "CLSTR_ID") %>%
+      mutate(LIVE_VOL_PER_HA_old = LIVE_VOL_PER_HA,
+             LIVE_VOL_PER_HA = ifelse(!is.na(fire_year) & fire_year >= MEAS_YR, 
+                                      LIVE_VOL_PER_HA_old * (1-ntwb_mortality), LIVE_VOL_PER_HA_old)
+      )
   
   return(spc_vol1)
 })
@@ -298,7 +325,7 @@ lead_vol_dat <- reactive({
     filter(CLSTR_ID %in%  clstr_id()) %>%
     select(CLSTR_ID, Design, 
            AGET_TLSO, BA_HA_LS, HT_TLSO, NTWB_NVAF_LS, NTWB_NVAF_DS,
-           PROJ_AGE_ADJ, vdyp_ba, vdyp_dom_ht, vdyp_vol_dwb, DEAD_STAND_VOLUME_175)
+           PROJ_AGE_ADJ, vdyp_ba, vdyp_dom_ht, vdyp_vol_dwb, DEAD_STAND_VOLUME_175) 
   
   lead_vol_dat1 <- lead_vol_dat %>%
     group_by(Design) %>%
@@ -571,7 +598,8 @@ invspc_vol_dat <- reactive({
     left_join(top3spc %>% select(-n), by = c('Design', 'SPECIES_INV')) %>%
     mutate(#SPC_GRP_INV = ifelse(!is.na(top3) & top3 == "Y", SPC_GRP2, "OTH"),
       #SPC_GRP_INV = ifelse(!is.na(top3) & top3 == "Y", SPECIES_INV, "OTH"),
-      SPC_GRP_INV = ifelse(SPECIES_INV %in% top3spc$SPECIES_INV, SPECIES_INV, 'OTH')) %>%
+      SPC_GRP_INV = ifelse(SPECIES_INV %in% top3spc$SPECIES_INV, SPECIES_INV, 'OTH'),
+      SPC_GRP_INV = fct_relevel(SPC_GRP_INV, "OTH", after = Inf) ) %>%
     replace_na(list(NTWB_NVAF_LS = 0, vdyp_vol_dwb = 0)) %>%
     #rowwise() %>%
     #mutate(SPC_GRP_INV = case_when(Design == "GRID" & SPC_GRP2 %in% top3_grid ~ SPC_GRP2,
@@ -640,7 +668,7 @@ spc_vol_dat <- reactive({
   spc_vol1 <- spc_vol1()
   
   spc_vol_dat <- spc_vol1 %>%
-    filter(CLSTR_ID %in%  clstr_id()) %>%
+    filter(CLSTR_ID %in%  clstr_id()) %>% 
     group_by(Design, source, SPECIES) %>%
     summarise(livevol = sum(LIVE_VOL_PER_HA, na.rm = T),
               deadvol = sum(DEAD_VOL_PER_HA, na.rm = T))
@@ -1095,14 +1123,16 @@ fig10_dat <- reactive({
   FH_dat_coc <- FH_dat_coc %>%
     rowwise() %>%
     mutate(#COMP_CHG_new = COMP_CHG,
-      COMP_CHG_new = comp_chg_coc,
+      #COMP_CHG_new = comp_chg_coc,
+      COMP_CHG_new = ifelse(comp_chg_coc == "ID", "M", comp_chg_coc),
       COMP_CHG_new = ifelse(new_visit_number == 'First' & lvd_coc == "D", "D", COMP_CHG_new),
       COMP_CHG_new = ifelse(new_visit_number == 'First' & lvd_coc == "L", "E", COMP_CHG_new)) %>%
     data.table
   
   FH_dat_coc1 <- FH_dat_coc %>%
     #mutate(n = n_distinct(SITE_IDENTIFIER)) %>%
-    filter(!is.na(BA_TREE), !is.na(phf_coc)) %>%
+    #filter(!is.na(BA_TREE), !is.na(phf_coc)) %>%
+    filter(!is.na(BA_TREE), !is.na(phf_coc), !is.na(VOL_NTWB)) %>%
     ungroup()
   
   # *compute incidence by visit and by live dead, then merge and average all samples per mu;
@@ -1112,6 +1142,7 @@ fig10_dat <- reactive({
     group_by(n_si, SITE_IDENTIFIER, new_visit_number, COMP_CHG_new) %>%
     summarize(tot_ba_comp = sum(phf_coc*BA_TREE, na.rm = T),
               tot_stems_comp = sum(phf_coc, na.rm = T),
+              tot_vol_comp = sum(phf_coc*VOL_NTWB, na.rm = T),
               n_tree = n())  %>%
     ungroup() %>%
     data.table()
@@ -1120,8 +1151,10 @@ fig10_dat <- reactive({
   if (nrow(FH_dat_coc2) > 1){
     FH_dat_coc2_1 <- FH_dat_coc2 %>%
       dcast(n_si + SITE_IDENTIFIER + new_visit_number ~ COMP_CHG_new,
-            value.var = "tot_stems_comp", drop=FALSE, fill=0, sep = "_") %>%
-      mutate(totsph_comdem = E + M + S)
+            value.var = "tot_vol_comp", drop=FALSE, fill=0, sep = "_") %>%
+            #value.var = "tot_stems_comp", drop=FALSE, fill=0, sep = "_") %>%
+      #mutate(totsph_comdem = E + M + S)
+    mutate(totvol_comdem = E + M + S)
   } else {
     FH_dat_coc2_1 <- data.frame()
   }
@@ -1133,6 +1166,7 @@ fig10_dat <- reactive({
     group_by(n_si, SITE_IDENTIFIER, new_visit_number, AGN, COMP_CHG_new) %>%
     summarize(tot_ba_dam_comp = sum(phf_coc*BA_TREE, na.rm = T),
               tot_stems_dam_comp = sum(phf_coc, na.rm = T),
+              tot_vol_dam_comp = sum(phf_coc*VOL_NTWB, na.rm = T),
               n_tree = n())  %>%
     ungroup() %>%
     data.table()
@@ -1143,8 +1177,10 @@ fig10_dat <- reactive({
     FH_dat_coc3_1 <- FH_dat_coc3 %>%
       # *creates full join of all fh damage agents per sample;
       dcast(n_si + SITE_IDENTIFIER + new_visit_number + AGN ~ COMP_CHG_new,
-            value.var = "tot_stems_dam_comp", drop=FALSE, fill=0, sep = "_") %>%
-      mutate(damsph_comdem = E + M + S)
+            value.var = "tot_vol_dam_comp", drop=FALSE, fill=0, sep = "_") %>%
+            #value.var = "tot_stems_dam_comp", drop=FALSE, fill=0, sep = "_") %>%
+      #mutate(damsph_comdem = E + M + S)
+    mutate(damvol_comdem = E + M + S)
     
     FH_dat_coc4 <- FH_dat_coc3_1 %>%
       left_join(FH_dat_coc2_1, 
@@ -1160,9 +1196,12 @@ fig10_dat <- reactive({
     
     FH_dat_coc5 <- FH_dat_coc5 %>%
       ungroup() %>%
-      mutate(incid_stems = damsph_comdem/totsph_comdem,
-             perc_mort = M.dam/damsph_comdem,
-             prob_get_and_die = incid_stems*perc_mort)
+      mutate(#incid_stems = damsph_comdem/totsph_comdem,
+             #perc_mort = M.dam/damsph_comdem,
+             #prob_get_and_die = incid_stems*perc_mort
+             incid_vol = damvol_comdem/totvol_comdem,
+             perc_mort = M.dam/damvol_comdem,
+             prob_get_and_die = incid_vol*perc_mort)
     
     fig10_dat_final <- FH_dat_coc5 %>%
       mutate(dam_1letter = toupper(substr(AGN, 1, 1)),
@@ -1175,7 +1214,8 @@ fig10_dat <- reactive({
                                    dam_1letter == 'A' ~ 'Animal',
                                    dam_1letter == 'X' ~ 'Frk_Crk_Btp',
                                    TRUE ~ '')) %>%
-      mutate(dam_class = fct_reorder(dam_class, -incid_stems)) 
+      mutate(dam_class = fct_reorder(dam_class, -incid_vol)) 
+      #mutate(dam_class = fct_reorder(dam_class, -incid_stems)) 
   } else {
     fig10_dat_final <- data.frame()
   }
