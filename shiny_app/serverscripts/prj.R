@@ -6,7 +6,7 @@ growth_text <- reactive({
                        volume growth within the TSA. Data points are connected 
                        where re-measurements are available. 
                        Samples identified as harvested or affected by disturbance 
-                       in the 2023 Forest Vegetation Composite Rank 1 layer 
+                       in the VRI 
                        during the re-measurement period are shown separately.</p>")
   return(growth_text)
 })
@@ -96,7 +96,7 @@ fig7_5 <- reactive({
       scale_x_continuous(limit = c(0, xlim)) +
       scale_color_manual(values = c("brown3"), name = NULL) +
       #scale_color_manual(values = c("brown3", "chartreuse4"), drop = FALSE) +
-      labs(x = "Age", y = "Volume") +
+      labs(x = "Age", y = "Volume (m3/ha)") +
       #facet_wrap(~Design, scale = "free_x", drop = FALSE) +
       theme(
         plot.caption = element_text(hjust = 0, size=15, face = "bold"),
@@ -332,7 +332,7 @@ paidiff <- reactive({
       xlim(-.1, .1) +
       ylim(floor(min(d$y)/5)*5, ceiling(max(d$y)/5)*5) +
       coord_flip() +
-      labs(x = "", y = expression(m^3~"/ha/yr"),
+      labs(x = "", y = expression("PAI ("*m^3*"/ha/yr)"),
            title = "PAI VDYP-GRID mean difference & 95% CI") +
       #theme_bw() + 
       theme(
@@ -415,20 +415,20 @@ maturetsr <- reactive({
   ## Mean predicted volume (aggregated)
   agg_meanvol <- tsr_volproj %>%
     filter(CLSTR_ID %in% clstr_id_grid(), 
-           AGE %in% seq(30, 120, 10)) %>% 
+           AGE %in% seq(30, 300, 10)) %>% 
     group_by(AGE) %>%
     summarise(meanvol = mean(volTSR))
   
   p <- if (nrow(Fig12_dat) > 1){ ggplot() +
     geom_line(data = agg_meanvol, aes(x= AGE, y=meanvol), col="deepskyblue", linewidth = 3) +
     geom_point(data = Fig12_dat,
-               aes(x=PROJ_AGE_ADJ, y=LIVE_VOL_PER_HA), col ="red", size = 3) +
+               aes(x=PROJ_AGE_ADJ, y=LIVE_VOL_PER_HA), col ="red2", size = 3) +
     geom_line(data = Fig12_dat,
               aes(x=PROJ_AGE_ADJ, y=LIVE_VOL_PER_HA, group= SITE_IDENTIFIER), 
-              col="red", linewidth = 1.2) +
+              col="red2", linewidth = 1.2) +
     #scale_x_continuous(expand = c(0, 0.1))+ 
     scale_y_continuous(expand = c(0.01, 0.1), limits = c(-0.01, NA)) + 
-    labs(x = "Total Age (yrs)", y = "Net Merch Volume (m3/ha)",
+    labs(x = "Total Age (yrs)", y = "Volume (m3/ha)",
          title = "Mature Sample Remeasurements vs Average of TSR Yield Tables",
          subtitle = "(Spatially matched to each GRID sample location)") +
     #theme_bw() + 
@@ -472,7 +472,7 @@ vol_bias <- reactive({
     geom_point(data = Fig13_dat,
                aes(x=ref_age_adj, y=voldiffTSR, col = yt_source_f, shape = yt_source_f), 
                size= 3,, show.legend = TRUE) +
-    scale_colour_manual(name = NULL, values=c("Managed" = "red","AGGREGATE"="deepskyblue" ,
+    scale_colour_manual(name = NULL, values=c("Managed" = "tomato","AGGREGATE"="deepskyblue" ,
                                               "VDYP" =  "green", "VDYP-fill_missed_tsr" = "darkmagenta"),
                         labels = c("TSR TIPSY Opening Specific", "TSR TIPSY Aggregate",
                                    "TSR VDYP", "TSR missed : VDYP filled"), drop = FALSE) +
@@ -483,7 +483,7 @@ vol_bias <- reactive({
     #scale_x_continuous(expand = c(0, 0))+ 
     #scale_y_continuous(expand = c(0.01, 0), limits = c(-0.01, NA))+ 
     labs(x = "Total Age (yrs)", y = "Predicted - Actual (m3/ha)",
-         title = "Total volume bias at each GRID location",
+         title = "Net merch volume total bias at each GRID location",
          subtitle = "(Predicted TSR yield table volume - Actual GRID volume)") +
     #theme_bw() + 
     theme(
@@ -650,7 +650,7 @@ pai_diff <- reactive({
       xlim(-.1, .1) +
       ylim(floor(min(d$y)/5)*5, ceiling(max(d$y)/5)*5) +
       coord_flip() +
-      labs(x = "", y = expression(m^3~"/ha/yr"),
+      labs(x = "", y = expression("PAI ("*m^3*"/ha/yr)"),
            title = "PAI TSR-GRID mean difference & 95% CI") +
       #theme_bw() + 
       theme(

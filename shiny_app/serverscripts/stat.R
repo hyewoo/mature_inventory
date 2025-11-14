@@ -4,9 +4,16 @@ ysd <- reactive({
   ysd <-  HTML(paste0("Ratio of Means (ROM) results are summarized between the latest ground 
                       measurements and inventory projections (projected to 
                       ground measurement year) for stand age, height, basal 
-                      area and net merchantable volume (live and dead), with 
+                      area and net merchantable volume (net decay, waste, and breakage; live and dead), with 
                       volume further post-stratified by leading inventory 
-                      species. Results of ROPE tests are highlighted if there 
+                      species. For those with a least 8 paired observations, 
+                      a region of practical equivalence (ROPE) assesses for 
+                      practical differences, defined here as 5% ROPE (ie., 
+                      ratio limits of 0.95 to 1.05). A practical difference (Y) 
+                      is when the ROM confidence interval (CI) is entirely 
+                      outside the ROPE, no practical difference (N) is when the 
+                      ROM CI is entirely within the ROPE; all other situations 
+                      are inconclusive (I). Results of ROPE tests are highlighted if there 
                       are practical differences (red) or not (green)."))
   return(ysd)
 })
@@ -20,7 +27,12 @@ output$description_text <- renderUI({
 
 table1 <- reactive({
   
-  table1_dat <- table1_dat()
+  
+  if (input$SelectVar == "Quesnel TSA") {
+    table1_dat <- table1_dat() 
+    
+  } else table1_dat <- table1_dat() %>%
+      mutate(Design = ifelse(Design == "SUP-GRID", "GRID", Design))
   
   flextable1 <- proc_freq(table1_dat, "Design", "MEAS_YR",
                           include.row_total = F,
@@ -87,9 +99,12 @@ table2 <- reactive({
            inv = round(inv, 1),
            grd = round(grd, 1),
            rom = round(rom, 2),
-           l95rom = round(l95rom, 2),
-           u95rom = round(u95rom, 2),
-           inv = round(inv, 1)
+           l95rom = ifelse(n >= 8,  round(l95rom, 2), NA),
+           u95rom = ifelse(n >= 8,  round(u95rom, 2), NA),
+           sigrope = ifelse(n >= 8,  sigrope, "-")
+           #l95rom = round(l95rom, 2),
+           #u95rom = round(u95rom, 2),
+           #inv = round(inv, 1)
     ) %>%
     flextable() %>%
     merge_v(j = ~Design)
@@ -166,9 +181,12 @@ table3 <- reactive({
            inv = round(inv, 1),
            grd = round(grd, 1),
            rom = round(rom, 2),
-           l95rom = round(l95rom, 2),
-           u95rom = round(u95rom, 2),
-           inv = round(inv, 1)
+           l95rom = ifelse(n >= 8,  round(l95rom, 2), NA),
+           u95rom = ifelse(n >= 8,  round(u95rom, 2), NA),
+           sigrope = ifelse(n >= 8,  sigrope, "-")
+           #l95rom = round(l95rom, 2),
+           #u95rom = round(u95rom, 2),
+           #inv = round(inv, 1)
     ) %>%
     flextable() %>%
     align(j = 9, align = "center", part = "body") %>%
@@ -380,7 +398,7 @@ output$fig3 <- renderPlot({
 
 output$fig3_caption <- renderUI({
   req(input$SelectVar)
-  HTML(paste0("<h5>Figure 3. Components of Bias (total, model, attribute), for 
+  HTML(paste0("<h5>Figure 8. Components of Bias (total, model, attribute), for 
               Basal Area (left graph) and Volume (right graph), by ground sample design.</h5>"))
   
 })

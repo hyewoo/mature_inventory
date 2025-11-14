@@ -51,6 +51,17 @@ ui <- dashboardPage(
         -webkit-box-shadow: inset 0 1px 1px rgba(0,0,0,.05);
         box-shadow: inset 0 1px 1px rgba(0,0,0,.05);}
         
+        .box-plain {
+  background-color: #fff;       /* White background */
+  border: 1px solid #ccc;       /* Light gray border */
+  border-radius: 0;             /* Square corners */
+  box-shadow: none;             /* No shadow */
+  padding: 15px;                /* Spacing inside the box */
+  margin-bottom: 20px;          /* Space below the box */
+  font-family: "BCSans", "Noto Sans", Verdana, Arial, sans-serif;
+  color: #494949;               /* Match body text color */
+}
+        
         .navbar-brand {color:#38598a;}
         
         /*.nav-tabs>li>a {font-family: "BCSans", "Noto Sans", Verdana, Arial, sans-serif; color:#036;}
@@ -107,12 +118,18 @@ ui <- dashboardPage(
         font-weight: bold;  /* 400 */
         color: black;
         }
+        
+        .tooltip-inner {
+      max-width: 400px;
+      white-space: normal;
+      text-align: left;
+    }
       '))),
       
-      box(title ="Note: This site is currently under development.", 
-          "The information provided is preliminary and subject to change.",
-          solidHeader = T, collapsible = T,status = "warning", width = NULL, collapsed=TRUE
-          ),
+      #box(title ="Note: This site is currently under development.", 
+      #    "The information provided is preliminary and subject to change.",
+      #    solidHeader = T, collapsible = T,status = "warning", width = NULL, collapsed=TRUE
+      #    ),
       
       box(title = "Select the area of interest", 
           solidHeader = TRUE, status = "primary", width = NULL,
@@ -135,14 +152,21 @@ ui <- dashboardPage(
   <div style="line-height:1; margin-bottom:1px;">
   <input type="radio" id="tsa" name="SelectCategory" value="TSA_DESC" checked>
   <label for="tsa" style="font-weight:normal;">By TSA</label><br>
-  
-  <input type="radio" id="bec" name="SelectCategory" value="BEC_ZONE" disabled>
-  <label for="bec" style="font-weight:normal;">By BEC zone</label><br>
-  
-  <input type="radio" id="flp" name="SelectCategory" value="FLP" disabled >
-  <label for="flp" style="font-weight:normal;">By FLP</label>
   </div>  
 </div>'
+#                             '<div align="left" class="multicol" style="font-size:100%; text-align:left;">
+#  <label for="SelectCategory">Strata</label><br>
+#  <div style="line-height:1; margin-bottom:1px;">
+#  <input type="radio" id="tsa" name="SelectCategory" value="TSA_DESC" checked>
+#  <label for="tsa" style="font-weight:normal;">By TSA</label><br>
+#  
+#  <input type="radio" id="bec" name="SelectCategory" value="BEC_ZONE" disabled>
+#  <label for="bec" style="font-weight:normal;">By BEC zone</label><br>
+#  
+#  <input type="radio" id="flp" name="SelectCategory" value="FLP" disabled >
+#  <label for="flp" style="font-weight:normal;">By FLP</label>
+#  </div>  
+#</div>'
                         )
                  ),
                  
@@ -150,10 +174,21 @@ ui <- dashboardPage(
                         div(
                           style = "margin-top: 25px;",
                           checkboxInput(inputId = "nonVT",
-                                        label = HTML("<font size='-1'>Include non-treed samples</font>
+                                        label = HTML("<font size='-1'>Include non-treed VRI polygons</font>
                                                      <i class='glyphicon glyphicon-info-sign' 
             style='color:#494949;' 
-            title='Uncheck for TSR'></i>"),
+   data-toggle='tooltip'
+   data-html='true'
+   data-placement='right'
+   title='The Timber Supply Review and Allowable Annual Cut (TSR) process typically includes only vegetated treed 
+                                                     VRI polygons in the timber harvesting landbase. Areas outside the timber harvesting landbase 
+                                                     do not contribute towards the AAC. We therefore suggest that if you’re assessing TSR assumptions, 
+                                                     you do not include the non-treed VRI polygons. If you’re assessing all mature stands 
+                                                     (even if the VRI says they have few trees), we recommend that you include the non-treed VRI polygons.</br>
+                                                     A VRI polygon is considered treed (bclcs_lv_2=T) 
+                                                     if at least 10% of the polygon area, by crown cover, 
+                                                     consists of tree species of any size.'>
+</i>"),
                                         value = FALSE),
                         )
                  )
@@ -196,40 +231,89 @@ ui <- dashboardPage(
                         br(),
                         uiOutput("samplenum"),
                         br(),
+                        uiOutput("bec_caption"),
+                        br(),
                         plotOutput("bec_dist", height = "350px"),
                         br()
                ),
                
                tabPanel(title = "Summary of Key Results",
+                        #br(),
+                        #withSpinner(uiOutput("samplesize")),
+                        #br(),
+                        #fluidRow(
+                        #  column(6,
+                        #         uiOutput("spcagree1"),
+                        #         br()),
+                        #  column(6,
+                        #         uiOutput("spcagree2"),
+                        #         br())
+                        #),
+                        #
+                        #plotOutput("fig2", height = "350px"),
+                        #uiOutput("fig2_desc"),
+                        #
+                        #br(),
+                        #uiOutput("test_caption"),
+                        #uiOutput("test1"),
+                        #br(),
+                        #uiOutput("test2"),
+                        #br(),
+                        #uiOutput("test3"),
+                        #
+                        #uiOutput("rope_desc"),
+                        #br(),
+                        h3("Summary of Key Results"),
                         br(),
-                        withSpinner(uiOutput("samplesize")),
-                        br(),
-                        fluidRow(
-                          column(6,
-                                 uiOutput("spcagree1"),
-                                 br()),
-                          column(6,
-                                 uiOutput("spcagree2"),
-                                 br())
+                        div(class = "box-plain",
+                          h4(paste0("1. The number of mature ground samples and 
+                                    their most recent measurement years are summarized.")),
+                          br(),
+                          withSpinner(uiOutput("samplesize")),
+                          actionLink("link_to_rope", "For more information, go to Table 2."),
                         ),
-                        
-                        plotOutput("fig2", height = "350px"),
-                        uiOutput("fig2_desc"),
-                        
+                        div(class = "box-plain",
+                          h4("2. Leading species and species composition from 
+                             mature ground samples (“ground”) are compared with 
+                             those from the Vegetation Resources Inventory (VRI) 
+                             forest inventory coverage (“inventory”)."),
+                          br(),
+                          fluidRow(
+                            column(6,
+                                   uiOutput("spcagree1")),
+                            column(6,
+                                   uiOutput("spcagree2"))
+                          ),
+                          actionLink("link_to_sp", "For more information, go to Species Composition."),
+                        ),
+                        div(class = "box-plain",
+                          h4("3. 95% confidence intervals for the Ratio Of Means 
+                             (ROM) and a 10% Region of Practical Equivalence 
+                             (ROPE) were used to assess the level of agreement 
+                             in forest attributes between ground samples and the VRI."),
+                          plotOutput("fig2", height = "350px"),
+                          uiOutput("fig2_desc"),
+                          uiOutput("rope_desc"),
+                          actionLink("link_to_rope", "For details, go to Table 3."),
+                        ),
+                        div(class = "box-plain",
+                          h4("4. Forest attributes showing practical differences or agreement are identified."),
+                          uiOutput("test_caption"),
+                          uiOutput("test1"),
+                          br(),
+                          uiOutput("test2"),
+                          br(),
+                          uiOutput("test3"),
+                          
+                          actionLink("link_to_rope", "For details, go to Stand Summaries."),
+                        ),
                         br(),
-                        uiOutput("test_caption"),
-                        uiOutput("test1"),
-                        br(),
-                        uiOutput("test2"),
-                        br(),
-                        uiOutput("test3"),
-                        
-                        uiOutput("rope_desc"),
-                        br(),
+                        br()
                ),
                
                "Ground vs. Inventory",
                tabPanel(title = "Stand Summaries",
+                        h3("Descriptive Statistics"),
                         uiOutput("description_text"),
                         br(),
                         withSpinner(uiOutput("table1")),
@@ -242,6 +326,7 @@ ui <- dashboardPage(
                         br(),
                ),
                tabPanel(title = "Species Composition",
+                        h3("Leading & Overall Species Comparisons"),
                         withSpinner(uiOutput("spcomp_text")),
                         br(),
                         uiOutput("table5a"),
@@ -256,6 +341,7 @@ ui <- dashboardPage(
                         uiOutput("fig5_caption"),
                         br(),
                         plotOutput("stock_table", width = "800px", height = "400px"),
+                        uiOutput("stock_caption"),
                         br(),
                ),
                #tabPanel(title = "Overall Species",
@@ -269,6 +355,8 @@ ui <- dashboardPage(
                #         br()
                #),
                tabPanel(title = "Age, BA, Height, and Volume",
+                        h3("Graphical Summary"),
+                        uiOutput("scatter_text"),
                         actionLink("link_to_rope", "For ROPE test results, go to Table 3."),
                         #uiOutput("scatter_text"),
                         br(),
@@ -282,8 +370,8 @@ ui <- dashboardPage(
                         h3("Comparing Current Volumes: TSR Predicted Yield Tables vs. GRID Actual Measurements"),
                         uiOutput("curvoltext"),
                         br(),
-                        div(plotOutput("maturetsr", width = "700px"),
-                            br(),
+                        div(withSpinner(plotOutput("maturetsr", width = "700px")),
+                            hr(),
                             withSpinner(plotOutput("vol_bias", width = "700px")), align = "center"),
                         br(),
                ),
@@ -309,6 +397,7 @@ ui <- dashboardPage(
                
                "Standards of Data Collection",
                tabPanel(title = "VRI Standard",
+                        h3("Inventory Standards of Data Collection"),
                         uiOutput("stdcode_text"),
                         br(),
                         div(withSpinner(plotOutput("fig7", width = "600px", height = "200px")), align = "center"),
@@ -319,18 +408,21 @@ ui <- dashboardPage(
                         br(),
                ),
                
-               "Wildfire Impact",
-               tabPanel(title = "Ground Samples Impacted by Recent Wildfires",
-                        uiOutput("fire_text"),
-                        br(),
-                        div(plotOutput("fig8", width = "500px", height = "300px"), align = "center"),
-                        br(),
-                        withSpinner(leafletOutput("firemap")),
-                        br()
-               ),
+               #"Wildfire Impact",
+               #tabPanel(title = "Ground Samples Impacted by Recent Wildfires",
+               #         uiOutput("fire_text"),
+               #         br(),
+               #         div(plotOutput("fig8", width = "500px", height = "300px"), align = "center"),
+               #         br(),
+               #         withSpinner(leafletOutput("firemap")),
+               #         br(),
+               #         plotOutput("fire_impact1", width = "800px", height = "300px"),
+               #         div(plotOutput("fire_impact2", width = "500px", height = "300px"), align = "center"),
+               #),
                
                "Forest Health",
                tabPanel(title = "Growth and Mortality",
+                        h3("Quantifying Change in Growth and Mortality"),
                         uiOutput("coctext"),
                         br(),
                         div(withSpinner(plotOutput("cocfig", width = "600px")), align = "center"),
@@ -339,7 +431,10 @@ ui <- dashboardPage(
                         #br()
                ),
                tabPanel(title = "Current Forest Health Incidence",
+                        h3("Current Forest Health Incidence"),
                         uiOutput("health_inci"),
+                        actionLink("link_to_gn", "A full list of recorded damage agents and severity classes is under General Notes."),
+                        br(),
                         br(),
                         div(withSpinner(plotOutput("curr_fh_inci")),
                         br(),
@@ -347,6 +442,7 @@ ui <- dashboardPage(
                         br()
                ),
                tabPanel(title = "Change in Forest Health Incidence",
+                        h3("Comparing Change in Forest Health Incidence"),
                         uiOutput("fhcoctext1"),
                         br(),
                         div(withSpinner(plotOutput("cocfhplot")), align = "center"),
@@ -359,6 +455,7 @@ ui <- dashboardPage(
                
                "Comparison with VDYP",
                tabPanel(title = "Current Volume and PAI",
+                        h3("VDYP Current Volume and PAI"),
                         uiOutput("growth_text"),
                         br(),
                         div(withSpinner(plotOutput("fig7_5", width = "600px")), align = "center"),
@@ -373,11 +470,11 @@ ui <- dashboardPage(
                         ),
                         br(),
                         div(plotOutput("paidiff", height = "200px", width = "400px"), align = "center"),
-                        br()
-               ),
-               
-               "Components of Bias",
+                        br(),
+                        ),
+               #"Components of Bias",
                tabPanel(title = "Model vs Attribute Bias",
+                        h3("Components of Bias"),
                         uiOutput("bias_comp"),
                         #br(),
                         div(withSpinner(plotOutput("fig3", width = "800px", height = "300px")), align = "center"),
@@ -389,12 +486,17 @@ ui <- dashboardPage(
                         ),
                         uiOutput("fig3_caption"),
                         br(),
+               
                ),
+             
                
                "General Notes",
-               tabPanel(title = "Disclaimer",
-                        uiOutput('disclaimer'),
-                        br()
+               tabPanel(#title = "Disclaimer",
+                        #uiOutput('disclaimer'),
+                        title = "General Notes / Assumptions",
+                        h4("Disclaimer"),
+                        uiOutput('gn'),
+                        br(),br()
                ),
                tabPanel(title = "Tree Species and Damage Agents",
                         uiOutput('sp_dam_header'),
@@ -409,9 +511,10 @@ ui <- dashboardPage(
                         br(),
                         br(),
                         uiOutput('damsevtable'),
+                        uiOutput('sev_desc'),
                         br()
                ),
-               tabPanel(title = "Reference",
+               tabPanel(title = "Past assessment / Reference",
                         h4("Reference for Analyses of Past VRI Phase II / VPIP Projects"),
                         #uiOutput("ref"),
                         dataTableOutput("ref"),

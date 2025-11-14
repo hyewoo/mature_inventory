@@ -9,7 +9,10 @@ fire_text <- reactive({
                       computed. This ensures consistency when comparing ground 
                       measurements against inventory attributes, since the 
                       published VRI also incorporates attribute adjustments by 
-                      burn severity class for these recent wildfires.</p>")
+                      burn severity class for these recent wildfires.</p>
+                      <p>Live basal area and net merchantable volume were 
+                      adjusted to incorporate post-fire mortality. For assessing 
+                      fire impact, unadjusted values are presented.</p>")
   
   return(fire_text)
 })
@@ -318,3 +321,113 @@ output$firemap <- renderLeaflet({
   firemap()
 })
 
+
+
+
+fire_impact1 <- reactive({
+  
+  lead_vol1 <- lead_vol1()
+  firesample <- firesample()
+  
+  fire_impact1 <- if(nrow(firesample) > 0){
+    
+    lead_vol1 %>%
+      filter(CLSTR_ID %in% clstr_id_grid()) %>%
+      mutate(n = n_distinct(CLSTR_ID)) %>%
+      reframe(meanba_beforefire = sum(BA_HA_LS_old, na.rm = T)/n, 
+              #meanstem_beforefire = sum(STEMS_HA_LS_old, na.rm = T)/n, 
+              meanvol_beforefire = sum(NTWB_NVAF_LS_old, na.rm = T)/n, 
+              meanba_fire = sum(BA_HA_LS, na.rm = T)/n, 
+              #meanstem_fire = sum(STEMS_HA_LS, na.rm = T)/n, 
+              meanvol_fire = sum(NTWB_NVAF_LS, na.rm = T)/n) %>% distinct() %>%
+      pivot_longer(cols = starts_with("mean"),
+                   names_pattern = "(.*)_(.*)",
+                   names_to = c("variable", "group")) %>%
+      mutate(group = fct_recode(group, 
+                                "Without Fire Impact" = "beforefire", 
+                                "With Fire Impact" = "fire")) %>%
+      ggplot(aes(y = value, x = group, fill = group)) +
+      geom_bar(stat="identity", width = 0.5) +
+      geom_text(aes(label = round(value, 1), col = group), vjust = -1) +
+      facet_wrap(~ variable, scales = "free_y", ncol = 2, 
+                 labeller = as_labeller(c(
+                   'meanba'="BA (m2/ha)",
+                   'meanstem'="Stems per ha",
+                   'meanvol'="Net Merchantable Volume (m3/ha)"
+                 ))) +
+      labs(x = "", y = "", fill = NULL) +
+      scale_y_continuous(
+        expand = expand_scale(mult = c(0, 0.2))
+      ) +
+      scale_fill_manual(name = NULL, 
+                        values = c("steelblue", "#B4464B")) +
+      scale_color_manual(name = NULL, 
+                         values = c("steelblue", "#B4464B")) +
+      theme(
+        legend.position = "none",
+        axis.line = element_line(colour="darkgray"), 
+        panel.grid.major.y = element_line(color = 'darkgray'), 
+        panel.grid.major.x = element_blank(),
+        panel.grid.minor.x = element_blank(),
+      ) 
+    
+  } else NULL
+  
+  return(fire_impact1)
+  
+})
+
+
+
+output$fire_impact1 <- renderPlot({
+  
+  fire_impact1()
+  
+})
+
+
+
+
+
+fire_impact2 <- reactive({
+  
+  spc_vol1 <- spc_vol1()
+  firesample <- firesample()
+  
+  fire_impact2 <- if(nrow(firesample) > 0){
+    
+    spc_vol1 %>%
+      #left_join(lead_vol %>% select(CLSTR_ID, MEAS_YR, fire_year:ntwb_mortality),
+      #          by = "CLSTR_ID") %>%
+      filter(CLSTR_ID %in% clstr_id_grid(),  SPECIES != "", source == "Ground") %>%
+      mutate(LIVE_VOL_PER_HA_beforefire = LIVE_VOL_PER_HA_old,
+             LIVE_VOL_PER_HA_fire = LIVE_VOL_PER_HA) %>%
+      mutate(n = length(clstr_id_grid())) %>%
+      group_by(SPECIES) %>%
+      reframe(mean_vol = sum(LIVE_VOL_PER_HA_beforefire, na.rm = T)/n, 
+              mean_vol_fire = sum(LIVE_VOL_PER_HA_fire, na.rm = T)/n) %>% distinct() %>%
+      pivot_longer(cols = mean_vol:mean_vol_fire) %>%
+      mutate(name = fct_recode(name, 
+                               "Without Fire Impact" = "mean_vol", 
+                               "With Fire Impact" = "mean_vol_fire")) %>%
+      ggplot(aes(fill = SPECIES, y = value, x = name)) + 
+      geom_bar(position="stack", stat="identity", width = 0.5) +
+      scale_fill_brewer(palette = "Set3") +
+      labs(x = "", y = "Volume (m3/ha)") +
+      scale_y_continuous(
+        expand = expand_scale(mult = c(0, 0.1))
+      ) 
+    
+  } else NULL
+  
+  return(fire_impact2)
+  
+})
+
+
+
+output$fire_impact2 <- renderPlot({
+  
+  fire_impact2()
+  
+})

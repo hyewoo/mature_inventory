@@ -45,8 +45,8 @@ header {
   }
   
   h4 {
-    font-family: ‘BCSans’, ‘Noto Sans’, Verdana, Arial, sans-serif;
-    font-weight: 300;  /* 400 */
+    font-family: Arial, sans-serif;
+    font-weight: 150;  /* 400 */
   }
   
   header .banner {

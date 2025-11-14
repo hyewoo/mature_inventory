@@ -18,7 +18,35 @@ output$spcomp_text <- renderUI({
 
 ld_table1 <- reactive({
   
-  correct_ls <- correct_ls()
+  #correct_ls <- correct_ls()
+  
+  if (input$SelectVar == "Quesnel TSA"){
+    lead_vol1 <- lead_vol %>%
+      mutate(Design = ifelse(Design %in% c("GRID", "SUP-GRID"), "GRID", "PHASE2")) %>%
+      mutate(Design = factor(Design, levels = c("GRID", "PHASE2")))
+    
+    lead_vol1 <- lead_vol1 %>%
+      mutate(BA_HA_LS_old = BA_HA_LS,
+             STEMS_HA_LS_old = STEMS_HA_LS,
+             NTWB_NVAF_LS_old = NTWB_NVAF_LS,
+             BA_HA_LS = ifelse(!is.na(fire_year) & fire_year >= MEAS_YR, 
+                               BA_HA_LS * (1-ba_mortality), BA_HA_LS),
+             STEMS_HA_LS = ifelse(!is.na(fire_year) & fire_year >= MEAS_YR, 
+                                  STEMS_HA_LS * (1-stem_mortality), STEMS_HA_LS),
+             NTWB_NVAF_LS = ifelse(!is.na(fire_year) & fire_year >= MEAS_YR, 
+                                   NTWB_NVAF_LS * (1-ntwb_mortality), NTWB_NVAF_LS))
+    
+    correct_ls <- lead_vol1 %>%
+      filter(CLSTR_ID %in%  clstr_id()) %>%
+      mutate(SPECIES = ifelse(is.na(SPECIES), "", SPECIES),
+             SPECIES_INV = ifelse(is.na(SPECIES_INV), "", SPECIES_INV)) %>%
+      group_by(Design) %>%
+      reframe(correct_ls = round(sum(SPECIES_INV == SPECIES)/n(), 3)) %>%
+      data.table
+  } else {
+    correct_ls <- correct_ls()
+  }
+  
   
   LD_data <- lead_vol %>%
     filter(CLSTR_ID %in% clstr_id()) 
@@ -67,7 +95,35 @@ output$table5a <- renderUI({
 
 ld_table2 <- reactive({
   
-  correct_ls <- correct_ls()
+  #correct_ls <- correct_ls()
+  
+  
+  if (input$SelectVar == "Quesnel TSA"){
+    lead_vol1 <- lead_vol %>%
+      mutate(Design = ifelse(Design %in% c("GRID", "SUP-GRID"), "GRID", "PHASE2")) %>%
+      mutate(Design = factor(Design, levels = c("GRID", "PHASE2")))
+    
+    lead_vol1 <- lead_vol1 %>%
+      mutate(BA_HA_LS_old = BA_HA_LS,
+             STEMS_HA_LS_old = STEMS_HA_LS,
+             NTWB_NVAF_LS_old = NTWB_NVAF_LS,
+             BA_HA_LS = ifelse(!is.na(fire_year) & fire_year >= MEAS_YR, 
+                               BA_HA_LS * (1-ba_mortality), BA_HA_LS),
+             STEMS_HA_LS = ifelse(!is.na(fire_year) & fire_year >= MEAS_YR, 
+                                  STEMS_HA_LS * (1-stem_mortality), STEMS_HA_LS),
+             NTWB_NVAF_LS = ifelse(!is.na(fire_year) & fire_year >= MEAS_YR, 
+                                   NTWB_NVAF_LS * (1-ntwb_mortality), NTWB_NVAF_LS))
+    
+    correct_ls <- lead_vol1 %>%
+      filter(CLSTR_ID %in%  clstr_id()) %>%
+      mutate(SPECIES = ifelse(is.na(SPECIES), "", SPECIES),
+             SPECIES_INV = ifelse(is.na(SPECIES_INV), "", SPECIES_INV)) %>%
+      group_by(Design) %>%
+      reframe(correct_ls = round(sum(SPECIES_INV == SPECIES)/n(), 3)) %>%
+      data.table
+  } else {
+    correct_ls <- correct_ls()
+  }
   
   LD_data <- lead_vol %>%
     filter(CLSTR_ID %in% clstr_id()) %>%
@@ -218,7 +274,7 @@ output$fig4_flex <- renderUI({
 
 output$fig4_caption <- renderUI({
   req(input$SelectVar)
-  HTML(paste0("<h5>Figure 4. Overall live standing species composition (% of 
+  HTML(paste0("<h5>Figure 3. Overall live standing species composition (% of 
               total live merch volume reported in Table 3) between ground and 
               inventory, for both GRID (left) and PHASE 2 (right) sample designs. 
               Species percent is computed from the summed live merch volume 
@@ -273,7 +329,7 @@ output$fig5 <- renderPlot({
 
 output$fig5_caption <- renderUI({
   req(input$SelectVar)
-  HTML(paste0("<h5>Figure 5. Overall dead standing species composition (% of 
+  HTML(paste0("<h5>Figure 4. Overall dead standing species composition (% of 
               total dead merch volume reported in Table 4) of ground samples, 
               for both GRID (left) and PHASE 2 (right) sample designs. Species 
               percent is computed from the summed dead merch volume (m3/ha) by 
@@ -289,6 +345,44 @@ output$scatter_text <- renderUI({
   HTML(paste0("For ROPE test results, <a href='#table2'>Go to Table 3</a>. "))
   
 })
+
+
+
+
+scatter_text <- reactive({
+  req(input$SelectVar)
+  
+  text <- paste0("<p>
+    Ground sample forest attributes are plotted against VRI attributes, with the average Ratio of Means (ROM) computed. 
+    VRI attributes are projected via VDYP7 to match each corresponding ground sample measurement year.
+  </p>
+
+  <ul>
+    <li>
+      <strong>Age:</strong> In ground samples, age is calculated as the average total age of cored trees, 
+      while in the inventory, it refers to the age of the leading species in the polygon, 
+      adjusted to the ground sample measurement year.
+    </li>
+    <li>
+      <strong>Basal Area:</strong> Live basal area at utilization level.
+    </li>
+    <li>
+      <strong>Height:</strong> Average top height of leading species.
+    </li>
+    <li>
+      <strong>Volume:</strong> Net merchantable volume net decay, waste, and breakage at the specified close utilization level 
+      (12.5 cm for pine and 17.5 cm for all other species).
+    </li>
+  </ul>")
+  
+  return(text)
+})
+
+output$scatter_text <- renderUI({
+  HTML(scatter_text())
+})
+
+
 
 
 
@@ -385,7 +479,7 @@ stockplot <- reactive({
       group_by(Design)%>%
       mutate(VOL_WSV_HA = VOL_WSV*PHF_TREE,
              PERC_TOT_VOL_HA = VOL_WSV_HA/sum(VOL_WSV_HA, na.rm = T),
-             DBH_CLASS = round(DBH/5)*5) %>% 
+             DBH_CLASS = round(DBH/10)*10) %>% 
       mutate(SPC_GRP1 = substr(SPECIES,1,2)) %>%
       mutate(SPC_GRP1 = ifelse(SPECIES %in% decidspc, 'DE', SPC_GRP1))
     
@@ -406,13 +500,13 @@ stockplot <- reactive({
     fig5_dat <- fig5_dat %>%
       mutate(SPC_GRP2 = ifelse(order <= 6, SPC_GRP1, 'Other'),
              SPC_GRP2 = ifelse(SPC_GRP2 == 'DE', 'Decid', SPC_GRP2),
-             DBH_CLASS_relevel = cut(DBH_CLASS, breaks = c(seq(-1, 59, 5), Inf), 
-                                     labels = c(seq(0, 55, 5), "60+")))
+             DBH_CLASS_relevel = cut(DBH_CLASS, breaks = c(seq(-1, 99, 10), Inf), 
+                                     labels = c(seq(0, 95, 10), "100+")))
     
     p <- ggplot(fig5_dat, aes(x = DBH_CLASS_relevel, y = PERC_TOT_VOL_HA_SPC, fill = SPC_GRP2)) + 
       geom_bar(stat = "identity") + 
       facet_wrap(.~Design, drop = FALSE) +
-      scale_fill_brewer(name = "", palette = "Set2") +
+      scale_fill_brewer(name = "", palette = "Set3") +
       scale_y_continuous(expand = expansion(mult = c(0, 0.1)), labels = scales::percent) +
       scale_x_discrete(drop=FALSE) +
       labs(x = "DBH class (cm)", y = "% of total vol/ha",
@@ -436,6 +530,15 @@ output$stock_table <- renderPlot({
   stockplot()
   
 })
+
+
+
+output$stock_caption <- renderUI({
+  req(input$SelectVar)
+  HTML(paste0("<h5>Figure 5. Live whole stem volume by DBH class, including all standing trees >= 4cm DBH at the latest measurement.</h5>"))
+  
+})
+
 
 
 

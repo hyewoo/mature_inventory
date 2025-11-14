@@ -11,7 +11,7 @@ coctext <- reactive({
     median()
   
   coctext <- HTML(paste0("<p>Growth and mortality of the n=", "<b>", total_remeas_plot, 
-                         "</b>", " re-measured mature ground samples (GRID) are summarized into 
+                         "</b>", " re-measured GRID samples are summarized into 
                          components of change for all tagged trees, separately for each measurement period. </p>", 
                          "<p>The components of change across only the last two measurements are shown 
   (figure below), representing a median period of ", round(period, 0),
@@ -44,7 +44,8 @@ cocfig <- reactive({
   
   fig8 <- fig8_dat %>%
     filter(CLSTR_ID %in% remeas_plot) %>%
-    mutate(baha = BA_TREE*phf_coc) %>%
+    mutate(baha = BA_TREE*phf_coc,
+           comp_chg_coc = ifelse(comp_chg_coc == "ID", "M", comp_chg_coc)) %>%
     group_by(comp_chg_coc) %>%
     summarize(BA = sum(baha, na.rm = T)/total_remeas_plot,
               stem = sum(phf_coc, na.rm = T)/total_remeas_plot) %>%
@@ -113,7 +114,7 @@ curfhtext <- reactive({
   clstr_id_grid <- clstr_id_grid()
   
   curfhtext <- HTML(paste0("All tagged trees in the <b>n=", length(clstr_id_grid), 
-  "</b> grid samples are assessed for up to five forest health damage agents
+  "</b> GRID samples are assessed for up to five forest health damage agents
 per tree. The mean incidence and 95% confidence intervals by damage
 agent (expressed as a percent of total live stems/ha of all unique damage
 agents recorded per tree) are computed at the latest measurement. Note
@@ -126,8 +127,7 @@ crooks prior to 2021, were likely over-estimated. Since 2021, fork and
 crook severity is further classified into minor (<50%) or major
 (>=50%) diameter offsets. 
 The severity of other scalable damages—such as fire, beetle, root rot, stem rust, 
-and weevil—is summarized by damage class, if available (figure below). 
-A full list of recorded damage agents and severity classes is under General Notes."))
+and weevil—is summarized by damage class, if available (figure below)."))
   return(curfhtext)
 })
 
@@ -190,23 +190,36 @@ curfhplot <- reactive({
     left_join(FH_dat3 %>% ungroup() %>% distinct(n, lvd_coc, avg_ba_allplot, avg_stems_allplot, avg_vol_allplot), 
               by = c("n", "lvd_coc")) %>%
     mutate(incid_stems_allplot = avg_stems_dam_allplot/avg_stems_allplot,
+           incid_ba_allplot = avg_ba_dam_allplot/avg_ba_allplot,
            incid_vol_allplot = avg_vol_dam_allplot/avg_vol_allplot)
   
   FH_dat6 <- FH_dat3 %>%
-    left_join(FH_dat5, by = c("n", "lvd_coc", "AGN", "avg_ba_allplot", "avg_stems_allplot"))
+    left_join(FH_dat5, by = c("n", "lvd_coc", "AGN", "avg_ba_allplot", "avg_stems_allplot", "avg_vol_allplot"))
   
   FH_dat6 <- FH_dat6 %>%
-    mutate(incid_diffs_sqrd = (tot_stems_dam_plot - avg_stems_dam_allplot)^2)
+    mutate(incid_diffs_sqrd = (tot_stems_dam_plot - avg_stems_dam_allplot)^2,
+           incid_ba_diffs_sqrd = (tot_ba_dam_plot - avg_ba_dam_allplot)^2,
+           incid_vol_diffs_sqrd = (tot_vol_dam_plot - avg_vol_dam_allplot)^2)
   
   FH_dat7 <- FH_dat6 %>%
     group_by(n, lvd_coc, AGN) %>%
-    summarize(sum_incid_diffs_sqrd = sum(incid_diffs_sqrd))
+    summarize(sum_incid_diffs_sqrd = sum(incid_diffs_sqrd),
+              sum_incid_ba_diffs_sqrd = sum(incid_ba_diffs_sqrd),
+              sum_incid_vol_diffs_sqrd = sum(incid_vol_diffs_sqrd))
   
   FH_dat8 <- FH_dat5 %>%
     left_join(FH_dat7, by = c("n", "lvd_coc", "AGN")) %>%
     mutate(var_stems_incid = sum_incid_diffs_sqrd / (n*(n-1)*avg_stems_allplot^2),
            l95_stems = ifelse(n >1, incid_stems_allplot - qt(0.975, n-1) * sqrt(var_stems_incid), NA),
-           u95_stems = ifelse(n >1, incid_stems_allplot + qt(0.975, n-1) * sqrt(var_stems_incid), NA))
+           u95_stems = ifelse(n >1, incid_stems_allplot + qt(0.975, n-1) * sqrt(var_stems_incid), NA),
+           
+           var_ba_incid = sum_incid_ba_diffs_sqrd / (n*(n-1)*avg_ba_allplot^2),
+           l95_ba = ifelse(n >1, incid_ba_allplot - qt(0.975, n-1) * sqrt(var_ba_incid), NA),
+           u95_ba = ifelse(n >1, incid_ba_allplot + qt(0.975, n-1) * sqrt(var_ba_incid), NA),
+           
+           var_vol_incid = sum_incid_vol_diffs_sqrd / (n*(n-1)*avg_vol_allplot^2),
+           l95_vol = ifelse(n >1, incid_vol_allplot - qt(0.975, n-1) * sqrt(var_vol_incid), NA),
+           u95_vol = ifelse(n >1, incid_vol_allplot + qt(0.975, n-1) * sqrt(var_vol_incid), NA))
   
   FH_dat8 <- FH_dat8 %>%
     mutate(dam_1letter = toupper(substr(AGN, 1, 1)),
@@ -220,31 +233,44 @@ curfhplot <- reactive({
                                  dam_1letter == 'X' ~ 'Frk_Crk_Btp',
                                  dam_1letter == 'V' ~ 'Vegetation',
                                  TRUE ~ '')) %>%
-    mutate(dam_class = fct_reorder(dam_class, -incid_stems_allplot))
+    mutate(dam_class = fct_reorder(dam_class, -incid_vol_allplot))
+    #mutate(dam_class = fct_reorder(dam_class, -incid_stems_allplot))
   
   FH_dat_final <- FH_dat8 %>% ungroup()
   
+  #limits <- FH_dat_final %>%
+  #  filter(AGN != "O", lvd_coc == "L") %>%
+  #  select(u95_stems) %>%
+  #  max() 
+  
   limits <- FH_dat_final %>%
     filter(AGN != "O", lvd_coc == "L") %>%
-    select(u95_stems) %>%
+    select(u95_vol) %>%
     max() 
   
   if (nrow(FH_dat_final) > 1){
     p <- ggplot(FH_dat_final %>% 
                   filter(lvd_coc == "L", AGN != "O")) + 
-      geom_bar(stat = "identity", aes(x = AGN, y = incid_stems_allplot, fill = dam_class)) + 
-      geom_errorbar(aes(x = AGN, ymin = l95_stems, ymax = u95_stems), width = .2,
+      #geom_bar(stat = "identity", aes(x = AGN, y = incid_stems_allplot, fill = dam_class)) + 
+      #geom_errorbar(aes(x = AGN, ymin = l95_stems, ymax = u95_stems), width = .2,
+      #              position = position_dodge(.9)) +
+      #geom_linerange(aes(x = AGN, ymin = incid_stems_allplot, ymax = u95_stems)) +
+      geom_bar(stat = "identity", aes(x = AGN, y = incid_vol_allplot, fill = dam_class)) + 
+      geom_errorbar(aes(x = AGN, ymin = l95_vol, ymax = u95_vol), width = .2,
                     position = position_dodge(.9)) +
-      geom_linerange(aes(x = AGN, ymin = incid_stems_allplot, ymax = u95_stems)) +
+      geom_linerange(aes(x = AGN, ymin = incid_vol_allplot, ymax = u95_vol)) +
       scale_x_discrete(drop = FALSE) +
       #scale_fill_brewer(name = NULL, palette = "Set2") +
       scale_fill_manual(name = NULL, values = dam_color) +
       scale_y_continuous(labels = scales::percent, expand = c(0, 0),
                          limits = c(0, ceiling(limits / 0.05) * 0.05)) + 
-      facet_grid(. ~ reorder(dam_class, -incid_stems_allplot, min), scales="free_x", space="free_x") +
+      #facet_grid(. ~ reorder(dam_class, -incid_stems_allplot, min), scales="free_x", space="free_x") +
+      facet_grid(. ~ reorder(dam_class, -incid_vol_allplot, min), scales="free_x", space="free_x") +
       labs(x = "", y = "Incidence (%)",
            title = "Current Incidence",  
-           subtitle = "(% of total live stems/ha of up to 5 unique damage agents recorded per tree)") +
+           subtitle = "(% of total live volume of up to 5 unique damage agents recorded per tree)"
+           #subtitle = "(% of total live stems/ha of up to 5 unique damage agents recorded per tree)"
+           ) +
       theme(
         axis.line = element_line(colour="darkgray"), 
         axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
@@ -286,7 +312,8 @@ sevplot <- reactive({
   sevplot_dat <- FH_dat %>%
     filter(lvd_coc == "L") %>%
     group_by(dam_class, sev_class) %>%
-    summarise(n = sum(phf_coc)) %>%
+    #summarise(n = sum(phf_coc)) %>%
+    summarise(n = sum(phf_coc*VOL_NTWB)) %>%
     ungroup() %>%
     mutate(nprop = prop.table(n)) %>%
     filter(dam_class != "None", dam_class != "Unknown") %>%
@@ -376,20 +403,30 @@ cocfhplot <- reactive({
   
   p <- if (nrow(fig10_dat) > 0) {
     ggplot(fig10_dat %>% filter(!(AGN %in% c("O", "")))) + 
-      geom_bar(stat = "identity", aes(x = AGN, y = incid_stems, fill = factor(new_visit_number)), 
+      #geom_bar(stat = "identity", aes(x = AGN, y = incid_stems, fill = factor(new_visit_number)), 
+      #         position = position_dodge(), width=0.7) + 
+      geom_bar(stat = "identity", aes(x = AGN, y = incid_vol, fill = factor(new_visit_number)), 
                position = position_dodge(), width=0.7) + 
       scale_fill_manual(values = c("steelblue", "#B4464B"), name = NULL, 
                         labels = c("Previous visit", "Latest visit")) +
       scale_x_discrete(drop = FALSE) +
       scale_y_continuous(labels = scales::percent, expand = c(0, 0),
-                         limits = c(0, ceiling(max(fig10_dat[fig10_dat$AGN!="O",]$incid_stems)*20) / 20),
+                         limits = c(0, ceiling(max(fig10_dat[fig10_dat$AGN!="O",]$incid_vol)*20) / 20),
                          minor_breaks = seq(0, 
-                                            ceiling(max(fig10_dat[fig10_dat$AGN!="O",]$incid_stems)*20) / 20, 
+                                            ceiling(max(fig10_dat[fig10_dat$AGN!="O",]$incid_vol)*20) / 20, 
                                             by = 0.01)) + 
-      facet_grid(. ~ reorder(dam_class, -incid_stems, min), scales="free_x", space="free_x") +
+      facet_grid(. ~ reorder(dam_class, -incid_vol, min), scales="free_x", space="free_x") +
+      #scale_y_continuous(labels = scales::percent, expand = c(0, 0),
+      #                   limits = c(0, ceiling(max(fig10_dat[fig10_dat$AGN!="O",]$incid_stems)*20) / 20),
+      #                   minor_breaks = seq(0, 
+      #                                      ceiling(max(fig10_dat[fig10_dat$AGN!="O",]$incid_stems)*20) / 20, 
+      #                                      by = 0.01)) + 
+      #facet_grid(. ~ reorder(dam_class, -incid_stems, min), scales="free_x", space="free_x") +
       labs(x = "", y = "Incidence (%)",
            title = "Change in primary damage agent incidence",
-           subtitle = "(% of live trees)") +
+           subtitle = "(% of live tree volume)"
+           #subtitle = "(% of live trees)"
+           ) +
       theme(
         axis.line = element_line(colour="darkgray"), 
         axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),
@@ -429,7 +466,9 @@ survived or died between measurements. The table below summarizes
 the components of change for those trees affected by 
 primary damage agents with highest percent incidence. In addition, the 
 probability of trees getting infected by a given damage agent and subsequently 
-dying from it, is also calculated.")
+dying from it, is also calculated. The damage agent code ‘O’ indicates 
+                     that no damage was observed. ‘Rest’ includes all damage 
+                     agents not explicitly listed in the table.")
   return(fhcoctext2)
 })
 
@@ -447,29 +486,45 @@ fhcocflex <- reactive({
   
   
   if (nrow(fig10_dat) > 0){
-    tot_tree_alive <- round(unique(fig10_dat[fig10_dat$new_visit_number=='Last',]$totsph_comdem),0)
+    #tot_tree_alive <- round(unique(fig10_dat[fig10_dat$new_visit_number=='Last',]$totsph_comdem),0)
+    tot_tree_alive <- round(unique(fig10_dat[fig10_dat$new_visit_number=='Last',]$totvol_comdem),1)
     
     table6_dat <- fig10_dat %>%
-      arrange(desc(incid_stems)) %>%
+      arrange(desc(incid_vol)) %>%
+      #arrange(desc(incid_stems)) %>%
       filter(new_visit_number == 'Last') %>%
       mutate(rank = row_number()) %>%
       mutate(rank_new = ifelse(rank>15, 16, rank),
              AGN_rank = ifelse(rank>15, "Rest", AGN)) %>%
       group_by(AGN_rank, rank_new) %>%
-      summarise(incid_stems = sum(incid_stems, na.rm = T)*100,
+      #summarise(incid_stems = sum(incid_stems, na.rm = T)*100,
+      #          S.dam = sum(S.dam, na.rm = T),
+      #          M.dam = sum(M.dam, na.rm = T),
+      #          damsph_comdem = sum(damsph_comdem, na.rm = T),
+      #          perc_mort = mean(perc_mort, na.rm = T)*100,
+      #          prob_get_and_die = sum(prob_get_and_die, na.rm = T)*100) %>%
+      summarise(incid_vol = sum(incid_vol, na.rm = T)*100,
                 S.dam = sum(S.dam, na.rm = T),
                 M.dam = sum(M.dam, na.rm = T),
-                damsph_comdem = sum(damsph_comdem, na.rm = T),
+                damvol_comdem = sum(damvol_comdem, na.rm = T),
                 perc_mort = mean(perc_mort, na.rm = T)*100,
                 prob_get_and_die = sum(prob_get_and_die, na.rm = T)*100) %>%
       ungroup() %>%
       arrange(rank_new) %>%
+      #mutate(total = "", 
+      #       PDA = AGN_rank,
+      #       Inci = round(incid_stems, 1),
+      #       S = round(S.dam, 0),
+      #       M = round(M.dam, 0), 
+      #       Tot = round(damsph_comdem, 0),
+      #       PM = round(perc_mort, 1),
+      #       Prob = round(prob_get_and_die, 1)) %>%
       mutate(total = "", 
              PDA = AGN_rank,
-             Inci = round(incid_stems, 1),
-             S = round(S.dam, 0),
-             M = round(M.dam, 0), 
-             Tot = round(damsph_comdem, 0),
+             Inci = round(incid_vol, 1),
+             S = round(S.dam, 1),
+             M = round(M.dam, 1), 
+             Tot = round(damvol_comdem, 1),
              PM = round(perc_mort, 1),
              Prob = round(prob_get_and_die, 1)) %>%
       select(total, PDA, Inci, S, M, Tot, PM, Prob) %>%
@@ -480,13 +535,18 @@ fhcocflex <- reactive({
     totm <- round(sum(as.numeric(table6_dat$M), na.rm = T),0)
     totmort <- round(totm/tot_tree_alive*100,1)
     
-    table6_total <- cbind("", "Total", paste0(totinc, "%"), tots, totm,tot_tree_alive, 
-                          paste0(totmort, "%"), paste0(totmort, "%"))
+    #table6_total <- cbind("", "Total", paste0(totinc, "%"), tots, totm,tot_tree_alive, 
+    #                      paste0(totmort, "%"), paste0(totmort, "%"))
+    table6_total <- cbind("", "Total", paste0(totinc, "%"), tots, totm, round(tots+totm, 1), 
+                          paste0(round(totm/(tots+totm)*100, 1), "%"), paste0(totmort, "%"))
     
     flextable3 <- flextable(table6_dat) 
     
-    flextable3 <- add_header_row(flextable3, top = TRUE, colwidths = c(3,4,1),
-                                 values = c("", "Number of Affected Trees by Primary Damage Agent", "")) #%>%
+    #flextable3 <- add_header_row(flextable3, top = TRUE, colwidths = c(3,4,1),
+    #                             values = c("", "Number of Affected Trees by Primary Damage Agent", "")) #%>%
+    flextable3 <- add_header_row(flextable3, top = TRUE, colwidths = c(1,1,1,4,1),
+                                 values = c("total", "PDA","Inci",
+                                            "Volume of Affected Trees by Primary Damage Agent", "Prob"))
     #align(align = "center", part = "all") %>%
     #merge_v(j = c(1:3,8), part = "header") 
     
@@ -499,12 +559,20 @@ fhcocflex <- reactive({
     flextable3 <- labelizor(
       x = flextable3, 
       part = "header", 
-      labels = c("total" = 'Live trees at\n period start\n [a]\n (#/ha)', 
+      #labels = c("total" = 'Live trees at\n period start\n [a]\n (#/ha)', 
+      #           "PDA" = "Primary\n Damage\n Agent",
+      #           "Inci" = "Incidence\n [b]=e/a \n (%)",
+      #           "S" = "Survivor trees\n [c]\n (#/ha)",
+      #           "M" = "Mortality trees\n [d]\n (#/ha)",
+      #           "Tot" = "Total affected\n [e]=c+d (#/ha)",
+      #           "PM" = "Mortality\n [f]=d/e\n (%)",
+      #           "Prob" = "Prob. getting\n Infected &\n Dying [g]=b*f\n (%)")) %>%
+      labels = c("total" = 'Live tree volume at\n period start\n [a]\n (m3/ha)', 
                  "PDA" = "Primary\n Damage\n Agent",
                  "Inci" = "Incidence\n [b]=e/a \n (%)",
-                 "S" = "Survivor trees\n [c]\n (#/ha)",
-                 "M" = "Mortality trees\n [d]\n (#/ha)",
-                 "Tot" = "Total affected\n [e]=c+d (#/ha)",
+                 "S" = "Survivor trees\n [c]\n (m3/ha)",
+                 "M" = "Mortality trees\n [d]\n (m3/ha)",
+                 "Tot" = "Total affected\n [e]=c+d (m3/ha)",
                  "PM" = "Mortality\n [f]=d/e\n (%)",
                  "Prob" = "Prob. getting\n Infected &\n Dying [g]=b*f\n (%)")) %>%
       autofit()
@@ -524,12 +592,20 @@ fhcocflex <- reactive({
     flextable3 <- labelizor(
       x = flextable3, 
       part = "header", 
-      labels = c("X1" = 'Live trees at\n period start\n [a]\n (#/ha)', 
+      #labels = c("X1" = 'Live trees at\n period start\n [a]\n (#/ha)', 
+      #           "X2" = "Primary\n Damage\n Agent",
+      #           "X3" = "Incidence\n [b]=e/a \n (%)",
+      #           "X4" = "Survivor trees\n [c]\n (#/ha)",
+      #           "X5" = "Mortality trees\n [d]\n (#/ha)",
+      #           "X6" = "Total affected\n [e]=c+d (#/ha)",
+      #           "X7" = "Mortality\n [f]=d/e\n (%)",
+      #           "X8" = "Prob. getting\n Infected &\n Dying [g]=b*f\n (%)")) %>%
+      labels = c("X1" = 'Live tree volume at\n period start\n [a]\n (m3/ha)', 
                  "X2" = "Primary\n Damage\n Agent",
                  "X3" = "Incidence\n [b]=e/a \n (%)",
-                 "X4" = "Survivor trees\n [c]\n (#/ha)",
-                 "X5" = "Mortality trees\n [d]\n (#/ha)",
-                 "X6" = "Total affected\n [e]=c+d (#/ha)",
+                 "X4" = "Survivor trees\n [c]\n (m3/ha)",
+                 "X5" = "Mortality trees\n [d]\n (m3/ha)",
+                 "X6" = "Total affected\n [e]=c+d (m3/ha)",
                  "X7" = "Mortality\n [f]=d/e\n (%)",
                  "X8" = "Prob. getting\n Infected &\n Dying [g]=b*f\n (%)")) %>%
       autofit()
