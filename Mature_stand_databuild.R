@@ -18,18 +18,18 @@ decidspc <- c('A','AC','ACT','ACB','AT',
 lwr_limit = 0.9
 upr_limit = 1.1
 
-savepath <- ""
-savepath <- "D:/R/mature_inventory/files/rds/250710"
+
+savepath <- "/files/rds"
 
 
 ### 1) Import ISMC compiled ground sample data
 ### Set data import location
-folderloc <- "//objectstore3.nrs.bcgov/s164/S63016/!Workgrp/Inventory/Compilation/ismc/forpublish"  # Published BC ground samples
-### Pick a compilation date (ex. 20240619)
-compdate <- 20240619
-### Need some unpublished data
+folderloc <- "/Inventory/Compilation/ismc/forpublish"  # Published BC ground samples
+### Pick a compilation date 
+compdate <- 20251104
 
-comp_path <- file.path(paste0("//objectstore3.nrs.bcgov/s164/S63016/!Workgrp/Inventory/Compilation/ismc/Archive_nonPSP_", 
+### Need some unpublished data
+comp_path <- file.path(paste0("/Inventory/Compilation/ismc/Archive_nonPSP_", 
                               compdate))
 indatapath <- file.path(folderloc, paste0("nonPSP_",compdate))
 
@@ -37,15 +37,15 @@ indatapath <- file.path(folderloc, paste0("nonPSP_",compdate))
 faib_header <-fread(paste0(indatapath, "/faib_header.csv"))
 faib_sample_byvisit <-fread(paste0(indatapath, "/faib_sample_byvisit.csv"))
 faib_spcsmries <-fread(paste0(indatapath, "/faib_compiled_spcsmries.csv"))
-faib_smeries <-fread(paste0(indatapath, "/faib_compiled_smeries.csv"))
+faib_smeries <-fread(paste0(indatapath, "/faib_compiled_smries.csv"))
 faib_siteage <-fread(paste0(indatapath, "/faib_compiled_spcsmries_siteage.csv"))
 faib_tree <-fread(paste0(indatapath, "/faib_tree_detail.csv"))
 ### Read ISMC compiled data (unpublished)
 vi_d<-readRDS(paste0(comp_path, "/compilation_nonPSP_db/compiled_vi_d.rds"))
 ### Import IMSC damage agent for severity class lookup table
-lookup_sev <-readRDS(paste0(comp_path, "/compilation_nonPSP_raw/ISMC_PROD_20240619_15pm_TreeDamageOccurrences.rds"))
+lookup_sev <-readRDS(paste0(comp_path, "/compilation_nonPSP_raw/ISMC_PROD_*****_***_TreeDamageOccurrences.rds"))
 
-external_path <-  "//objectstore3.nrs.bcgov/s164/S63016/!Workgrp/Inventory/!WorkArea/hwoo/ForestHealth/CopiedfromRdejong/forest_health/severity_rating_lookup_table"
+external_path <-  "/forest_health/severity_rating_lookup_table"
 ### Import forest health severity data
 #* severity rating lookup table created by D.Rusch;
 lookup_rush <- read.xlsx(paste0(external_path, 
@@ -58,33 +58,38 @@ sev_rusch <- read.xlsx(paste0(external_path,
 
 
 # Read VRI data - this version is based on the published 2022 vri feature_id;
-#vridatpath <- file.path(paste0(external_path2,  "/spatial_overlay/ISMC_VRI_Overlay/VDYP7/1_All_VRI_Attributes_2024Jun11.accdb"))
-external_path <- "//objectstore3.nrs.bcgov/s164/S63016/!Workgrp/Inventory/Compilation/ismc/external_inputs"
-vridatpath <- file.path(paste0(external_path, "/spatial_overlay/ISMC_VRI_Overlay/previous_versions/2_All_VRI_Attributes_2024Jun11.accdb"))
+external_path <- "/Inventory/Compilation/ismc/external_inputs"
+vridatpath <- file.path(paste0(external_path, "/spatial_overlay/ISMC_VRI_Overlay/2_All_VRI_Attributes_2025nov06.accdb"))
 channel<-odbcConnectAccess2007(vridatpath)
 vegcomp1<-sqlFetch(channel,"All_VRI_Attributes")
 odbcClose(channel)
 
-# *import crosswalk table for feature_id based on 2022 vegcomp, 
+# *import crosswalk table for feature_id based on 2022 (2023) vegcomp, 
 # needed to provide linkage for latest tsr msyt tables;
-vegcomp2<- read.xlsx(paste0(external_path, 
-                            "/spatial_overlay/ISMC_VRI_Overlay/2022VegCompR1_Overlay/1_Plot_Overlay_Out_2024Jun18.xlsx"))
-### Make sure the variable names match
-names(vegcomp2) <-c('SITE_IDENTIFIER', 'Alb_x', 'Alb_y', 'FEATURE_ID_2022', 'PROJ_AGE_1_2022', 'PROJECTED_DATE_2022')
+vridatpath2 <- file.path("D:/OtherData/ISMC_VRI_Overlay_2025Nov06/2_All_VRI_Attributes_2025May20.accdb")
+channel<-odbcConnectAccess2007(vridatpath2)
+vegcomp2<-sqlFetch(channel,"All_VRI_Attributes")
+odbcClose(channel)
+
+## Make sure the variable names match
+vegcomp2 <- vegcomp2 %>% 
+  select(SITE_IDENTIFIER, Alb_x, Alb_y, 
+         FEATURE_ID_2023 = FEATURE_ID, PROJ_AGE_1_2023 = PROJ_AGE_1, PROJECTED_DATE_2023 = PROJECTED_DATE)
+
 
 # *get master grid base msaccess database created by M.Makar 2019-jan-10, to define grid designs;
 # *includes nfi grid and intensification of nfi grid down to 5*5km;
-grid_lookup <- read.xlsx("D:/R/mature_inventory/Data/FAIB_Sampling_Grids_Dec_03_2021.xlsx")
+grid_lookup <- read.xlsx("/Data/FAIB_Sampling_Grids_Dec_03_2021.xlsx")
 
 
 # *get post 2018 wildfire grid based sample survey on 5*5km grid, which overlaps with CMI , VRI samples on the 10*20km grid;
 # *cant use five_5_plot_numbers, since they were redefined early 2019.  so use intended utm coordinates instead to match;
 # *affected tsas include morice, lakes, prince george;
 # *round utm coordinates to 100m, noticed that one extra sample location matched by rounding east coordinate up by 100. no other combinations provided match;
-fire_2018 <- read.xlsx("//objectstore3.nrs.bcgov/s164/S63016/!Workgrp/Inventory/!Project/Forest Inventory Section/2018 Wildfires/nadina_fire_compilation/overlay_severity_classes/Burn Points to Sample_Original severity.xlsx")
+fire_2018 <- read.xlsx("/Inventory/!Project/Forest Inventory Section/2018 Wildfires/nadina_fire_compilation/overlay_severity_classes/Burn Points to Sample_Original severity.xlsx")
 
 # *get post 2017 and 2021 wildfire ground sample recompilations from Yong, where he computed percent mortality;
-firesamples_2022 <- read.xlsx("//objectstore3.nrs.bcgov/s164/S63016/!Workgrp/Inventory/Compilation/ismc/external_outputs/fire_samples/firesamples_2022jul21.xlsx")
+firesamples_2022 <- read.xlsx("/Inventory/Compilation/ismc/external_outputs/fire_samples/firesamples_2022jul21.xlsx")
 
 ### Reassign duplicated column name
 names(fire_2018)[1] <- "five_k_plot_number"
@@ -154,11 +159,12 @@ sample_data1 <- faib_sample_byvisit %>%
 sample_data2 <- sample_data1 %>%
   filter(sample_change_case == "") %>%
   filter(drop_reason %in% c('', 'not_VT')) %>%
+  filter(MEAS_YR < 2025) %>%
   mutate(design = ifelse(SAMPLE_ESTABLISHMENT_TYPE %in% c("CMI", "NFI", "SUP"), "GRID", "PHASE2"), 
          design_icon = ifelse(design == "GRID", 1, 2))
 
 sample_data2 <- sample_data2 %>%
-  left_join(vegcomp2 %>% select(SITE_IDENTIFIER, FEATURE_ID_2022, PROJ_AGE_1_2022),
+  left_join(vegcomp2 %>% select(SITE_IDENTIFIER, FEATURE_ID_2023, PROJ_AGE_1_2023),
             by = c("SITE_IDENTIFIER"), suffix = c("", "_vegcomp"))
 
 
@@ -220,7 +226,6 @@ sample_data3_5 <- bind_rows(sample_data3_1 %>% filter(orphan == 0 | design == "P
 # *generalize all on 20km grid as cmi, and drop those NFI areas where no other grid sampling has yet taken place;
 # *one nfi sample in PG that is outside popn of interest in TSA (north tip of TSA);
 # *other tsas with 40km*40km grid sampling, only keep those nfi samples on same 40km grid;
-#sample_data4 <- sample_data3 %>%
 sample_data4 <- sample_data3_5 %>%
   filter(!(SAMPLE_ESTABLISHMENT_TYPE == "NFI" & TSA %in% c(4,8,43) & Forty_By_Forty == "N")) %>%
   # *nfi PG outside pop of interest, nfi Mackenzie outside northern range of mature population in the mackenzie tsa;
@@ -233,7 +238,6 @@ sample_data4 <- sample_data3_5 %>%
                                               SAMPLE_ESTABLISHMENT_TYPE == "CMI" &
                                               TSA == 26, 
                                             "CMI-E", SAMPLE_ESTABLISHMENT_TYPE)) %>%
-  #filter(SAMPLE_ESTABLISHMENT_TYPE != "CMI-E") %>%
   mutate(SAMPLE_ESTABLISHMENT_TYPE = ifelse(SAMPLE_ESTABLISHMENT_TYPE == "NFI", "CMI", SAMPLE_ESTABLISHMENT_TYPE)) %>%
   ## *define design.  for specific tsas, intensified SUPplemental samples on a grid are combined with cmi;
   mutate(Design = case_when(TSA %in% c(26, 20) & SAMPLE_ESTABLISHMENT_TYPE %in% c('CMI','CMI-E') ~ "GRID",
@@ -296,8 +300,7 @@ sample_data4 <- sample_data3_5 %>%
                               substr(SAMPLE_SITE_NAME, 1, 4) %in% c('0331','0332','0371') ~ "Y",
                             TRUE ~ ""
   )) %>%
-  filter(Design %in% c("GRID", "SUP-GRID") | (Design == "PHASE2" & vri_in == "Y")) #%>%
-  #filter(LAST_MSMT == "Y")
+  filter(Design %in% c("GRID", "SUP-GRID") | (Design == "PHASE2" & vri_in == "Y")) 
 
 
 sample_data4_1 <- sample_data4 %>%
@@ -314,7 +317,6 @@ sample_data4_2 <- sample_data4_1 %>%
 n_by_mgmt <- sample_data4_2 %>%
   filter(LAST_MSMT_new == "Y") %>%
   group_by(MGMT_UNIT, Design) %>%
-  #mutate(n = n()) %>%
   filter(n() >= 8) %>%
   pull(SITE_IDENTIFIER)
 
@@ -386,14 +388,14 @@ sample_data7 <- sample_data6 %>%
          Design, design_icon, GRID_SIZE, grid_size, Latitude, Longitude,
          IP_UTM, IP_NRTH, IP_EAST, BC_ALBERS_X, BC_ALBERS_Y, BC_Albers_X, BC_Albers_Y, 
          UTM_Zone, UTM_Northing, UTM_Easting, OWNER, SCHEDULE, OWN_SCHED, OWN_SCHED_DESCRIP,
-         FEATURE_ID, FEATURE_ID_vegcomp, FEATURE_ID_2022, #FEATURE_ID_2022_vegcomp,
+         FEATURE_ID, FEATURE_ID_vegcomp, FEATURE_ID_2023, 
          MAP_ID, OPENING_NUMBER, OPENING_ID, LAYER_ID, INVENTORY_STANDARD_CD,
          BEC_ZONE, BEC_SBZ, BEC_VAR, BEClabel, BECsub,
          PROJECTED_DATE_vegcomp, PROJECTED_DATE, INTERPRETATION_DATE, REFERENCE_YEAR, 
          LINE_7B_DISTURBANCE_HISTORY, EARLIEST_NONLOGGING_DIST_TYPE, EARLIEST_NONLOGGING_DIST_DATE,
          HARVEST_DATE, BCLCS_LEVEL_1:BCLCS_LEVEL_5,
          SPECIES_CD_1:SPECIES_PCT_6, 
-         PROJ_AGE_1, PROJ_AGE_1_2022, PROJ_AGE_1_vegcomp, #PROJ_AGE_1_2022_vegcomp, 
+         PROJ_AGE_1, PROJ_AGE_1_2023, PROJ_AGE_1_vegcomp, 
          PROJ_AGE_2, PROJ_AGE_ADJ,
          PROJ_HEIGHT_1, PROJ_HEIGHT_2, SITE_INDEX, CROWN_CLOSURE, BASAL_AREA,
          VRI_LIVE_STEMS_PER_HA, VRI_DEAD_STEMS_PER_HA, LIVE_STAND_VOLUME_125, LIVE_STAND_VOLUME_175,
@@ -410,6 +412,7 @@ sample_data7 <- sample_data6 %>%
          DEAD_VOL_PER_HA_SPP5_125, DEAD_VOL_PER_HA_SPP5_175,
          DEAD_VOL_PER_HA_SPP6_125, DEAD_VOL_PER_HA_SPP6_175,
          DEAD_STAND_VOLUME_125, DEAD_STAND_VOLUME_175,
+         WHOLE_STEM_BIOMASS_PER_HA, BRANCH_BIOMASS_PER_HA, FOLIAGE_BIOMASS_PER_HA, BARK_BIOMASS_PER_HA,
          Five_By_Five, Five_By_Ten, Ten_By_Five, Ten_By_Ten, Ten_By_Twenty, 
          Twenty_By_Twenty_NFI, Twenty_By_Forty, Forty_By_Forty,
          fire_year, stem_mortality, ba_mortality, wsv_mortality, ntwb_mortality, drop_reason
@@ -421,7 +424,6 @@ saveRDS(sample_data7, paste0(savepath, "/sample_data.rds"))
 
 ### Projected inventory
 external_path2 <- "//objectstore3.nrs.bcgov/s164/S63016/!Workgrp/Inventory/Compilation/ismc/external_inputs/spatial_overlay/ISMC_VRI_Overlay/VDYP7"
-external_path2 <- "D:/OtherData/VDYP/old/VDYP7_2024Mar01"
 
 VDYP_all <- fread(paste0(external_path2, 
                          "/VDYP7_OUTPUT_YLDTBL.csv"))
@@ -437,22 +439,10 @@ VDYP_all <- VDYP_all %>%
   left_join(VDYP_input1_1 %>% select(FEATURE_ID, LAYER_ID = LAYER_LEVEL_CODE), 
             by = c("FEATURE_ID", "LAYER_ID"))
 
-#VDYP_proj <- VDYP_all %>%
-#  filter(FEATURE_ID %in% unique(sample_data7$FEATURE_ID_2022))
-
-#VDYP_proj1 <- VDYP_proj %>%
-#  left_join(sample_data7 %>% select(FEATURE_ID_2022, CLSTR_ID, BEC_ZONE, PROJ_AGE_ADJ),
-#            by = c("FEATURE_ID" = "FEATURE_ID_2022"))
-
 VDYP_proj1 <- sample_data7 %>%
-  select(FEATURE_ID, LAYER_ID, CLSTR_ID, BEC_ZONE, SPECIES_CD_1, PROJ_AGE_ADJ) %>%
+  select(FEATURE_ID , LAYER_ID, CLSTR_ID, BEC_ZONE, SPECIES_CD_1, PROJ_AGE_ADJ) %>%
   mutate(LAYER_ID = as.character(LAYER_ID)) %>%
   left_join(VDYP_all, by = c("FEATURE_ID", "LAYER_ID"))
-
-#VDYP_proj2 <- VDYP_proj1 %>% 
-#  select(CLSTR_ID, BEC_ZONE, FEATURE_ID, LAYER_ID, SPECIES_1_CODE, 
-#         PROJ_AGE_ADJ, PRJ_BA, PRJ_TPH, PRJ_TOTAL_AGE, PRJ_DOM_HT, PRJ_VOL_DWB) %>%
-#  mutate_at(vars(PRJ_BA, PRJ_TPH, PRJ_DOM_HT, PRJ_VOL_DWB), ~replace(., is.na(.), 0))
 
 VDYP_proj2 <- VDYP_proj1 %>% 
   filter(!is.na(CLSTR_ID)) %>% 
@@ -460,17 +450,9 @@ VDYP_proj2 <- VDYP_proj1 %>%
          PROJ_AGE_ADJ, PRJ_BA, PRJ_TPH, PRJ_TOTAL_AGE, PRJ_DOM_HT, PRJ_VOL_DWB) %>%
   mutate_at(vars(PRJ_BA, PRJ_TPH, PRJ_DOM_HT, PRJ_VOL_DWB), ~replace(., is.na(.), 0))
 
-#vdyp_year <- VDYP_proj2 %>% 
-#  filter(LAYER_ID != "D") %>% 
-#  tidyr::expand(nesting(FEATURE_ID, CLSTR_ID, LAYER_ID), PRJ_TOTAL_AGE = full_seq(PRJ_TOTAL_AGE, 1))
-
 vdyp_year <- VDYP_proj2 %>% 
   filter(!is.na(SPECIES_1_CODE)) %>% 
   tidyr::expand(nesting(FEATURE_ID, CLSTR_ID, LAYER_ID), PRJ_TOTAL_AGE = full_seq(PRJ_TOTAL_AGE, 1))
-
-#VDYP_proj3 <- vdyp_year %>%
-#  left_join(VDYP_proj2, by = c("FEATURE_ID", "CLSTR_ID", "LAYER_ID", "PRJ_TOTAL_AGE")) %>%
-#  arrange(FEATURE_ID, CLSTR_ID, LAYER_ID, PRJ_TOTAL_AGE)
 
 VDYP_proj3 <- vdyp_year %>%
   left_join(VDYP_proj2, by = c("FEATURE_ID", "CLSTR_ID", "LAYER_ID", "PRJ_TOTAL_AGE")) %>%
@@ -492,6 +474,8 @@ VDYP_proj4 <- VDYP_proj3 %>%
 
 saveRDS(VDYP_proj4, paste0(savepath, "/VDYP_proj_all.rds"))
 
+VDYP_proj_all <- VDYP_proj4
+
 prj_dat <- VDYP_proj4 %>%
   filter(PRJ_TOTAL_AGE %in% seq(0, 500, by = 10))   %>%
   left_join(sample_data7 %>% select(CLSTR_ID, Design), by = 'CLSTR_ID')
@@ -499,25 +483,13 @@ prj_dat <- VDYP_proj4 %>%
 
 saveRDS(prj_dat, paste0(savepath, "/prj_dat.rds"))
 
-#VDYP_proj5 <- VDYP_proj4 %>%
-#  filter(!is.na(CLSTR_ID)) %>%
-#  filter(ifelse(!is.na(PROJ_AGE_ADJ) & PROJ_AGE_ADJ < 526, PROJ_AGE_ADJ == PRJ_TOTAL_AGE, PRJ_TOTAL_AGE == 526))
+
 
 VDYP_proj5 <- VDYP_proj4 %>%
   filter(!is.na(CLSTR_ID), PROJ_AGE_ADJ == PRJ_TOTAL_AGE) %>%
   select(-PRJ_BA, -PRJ_TPH, -PRJ_DOM_HT, -PRJ_VOL_DWB)
 
-
-#VDYP_proj6 <- VDYP_proj5 %>%
-#  group_by(CLSTR_ID, FEATURE_ID) %>%
-#  arrange(desc(LAYER_ID)) %>%
-#  slice(1)
-#
-#VDYP_proj6_1 <- VDYP_proj6 %>%
-#  left_join(sample_data7 %>% select(CLSTR_ID, SPECIES_CD_1), by = "CLSTR_ID")
-
 VDYP_proj6 <- VDYP_proj5  %>%
-#VDYP_proj6 <- VDYP_proj6_1  %>%
   rowwise() %>%
   #*further adjustments, corrections to species codes based on bec zone & expected outcome;
   # *bec coast vs interior for species corrections;
@@ -550,7 +522,6 @@ VDYP_proj6 <- VDYP_proj5  %>%
                                  grepl("H", SPECIES_INV) == T & bec_i_c == "C" & !(BEC_ZONE %in% c('CWH','CDF')) ~ "HM",
                                  grepl("H", SPECIES_INV) == T & bec_i_c == "I" ~ "HW",
                                  TRUE ~ SPECIES_INV),#,
-         #SPC_GRP_GRD = ifelse(SPECIES %in% decidspc, 'DE', SPECIES),
          SPC_GRP2 = ifelse(SPECIES_INV %in% decidspc, 'DE', SPECIES_INV),
                            
          SPECIES_INV_prj = SPECIES_1_CODE,
@@ -579,247 +550,18 @@ VDYP_proj6 <- VDYP_proj5  %>%
                                  grepl("H", SPECIES_INV_prj) == T & bec_i_c == "C" & BEC_ZONE %in% c('CWH','CDF') ~ "HW",
                                  grepl("H", SPECIES_INV_prj) == T & bec_i_c == "C" & !(BEC_ZONE %in% c('CWH','CDF')) ~ "HM",
                                  grepl("H", SPECIES_INV_prj) == T & bec_i_c == "I" ~ "HW",
-                                 TRUE ~ SPECIES_INV_prj),#,
-         #SPC_GRP_GRD = ifelse(SPECIES %in% decidspc, 'DE', SPECIES),
-         SPC_GRP2_prj = ifelse(SPECIES_INV_prj %in% decidspc, 'DE', SPECIES_INV_prj)#,
-         #LIVE_VOL_PER_HA = ifelse(SPECIES == "PL", LIVE_VOL_PER_HA_125, LIVE_VOL_PER_HA_175),
-         #DEAD_VOL_PER_HA = ifelse(SPECIES == "PL", DEAD_VOL_PER_HA_125, DEAD_VOL_PER_HA_175),
-         #source = "Inventory"
+                                 TRUE ~ SPECIES_INV_prj),
+         SPC_GRP2_prj = ifelse(SPECIES_INV_prj %in% decidspc, 'DE', SPECIES_INV_prj)
   ) %>%
   as.data.table()
 
 
-saveRDS(VDYP_proj6, paste0(savepath, "/VDYP_dat.rds"))
-
-
-### 2) Import MSYT projection table (2023)
-msytfpath <- "D:/OtherData/MSYT/2023/waddell2023_prov"
-### Input, output, and reference table
-MSYT_current_input <- fread(paste0(msytfpath,"/MSYT_prov_current_input.csv"))
-MSYT_current_output <- fread(paste0(msytfpath,"/MSYT_prov_current_input_output.csv"))
-MSYT_reference <- fread(paste0(msytfpath,"/MSYT_prov_reference.csv"))
-
-### Make sure the variable names match
-names(MSYT_reference) <- toupper(names(MSYT_reference))
-names(MSYT_current_input) <- toupper(names(MSYT_current_input))
-names(MSYT_current_output) <- toupper(names(MSYT_current_output))
-
-
-
-################################################################################
-### Leading species
-### Ground
-# *get leading species by ba at 12.5cm util;
-grd_lead <-faib_spcsmries  %>% 
-  filter(CLSTR_ID %in% sample_data7$CLSTR_ID, UTIL == 12.5) %>%
-  mutate(SPC_GRP1 = substr(SPECIES,1,2)) %>%
-  mutate(SPC_GRP1 = ifelse(SPECIES %in% decidspc, 'DE', SPC_GRP1)) %>%  
-  group_by(CLSTR_ID) %>% 
-  arrange(desc(SP_PCT_BA_LS)) %>% 
-  slice(1) %>% 
-  select(SITE_IDENTIFIER, CLSTR_ID, SPECIES, SPC_GRP1)  
-
-### Age and ht of leading species
-grd_by_sp <- grd_lead %>%
-  left_join(faib_siteage, by = c("CLSTR_ID", "SPECIES"))
-
-### volume: 12.5 for PL 17.5 for others
-grd_bastemvol <-faib_spcsmries  %>% 
-  filter(CLSTR_ID %in% sample_data7$CLSTR_ID, UTIL == ifelse(SPECIES == "PL", 12.5, 17.5)) %>%
-  group_by(CLSTR_ID) %>% 
-  select(SITE_IDENTIFIER, CLSTR_ID, SPECIES, UTIL, 
-         BA_HA_LS, BA_HA_DS, 
-         STEMS_HA_LS, STEMS_HA_DS,
-         VHA_NTWB_NVAF_LS, VHA_NTWB_NVAF_DS) %>% 
-  # *sum volumes ba and tph at specified utilization limits across all species;
-  summarise(BA_HA_LS = sum(BA_HA_LS, na.rm = T),
-            BA_HA_DS = sum(BA_HA_DS, na.rm = T),
-            STEMS_HA_LS = sum(STEMS_HA_LS, na.rm = T),
-            STEMS_HA_DS = sum(STEMS_HA_DS, na.rm = T),
-            NTWB_NVAF_LS = sum(VHA_NTWB_NVAF_LS, na.rm = T),
-            NTWB_NVAF_DS = sum(VHA_NTWB_NVAF_DS, na.rm = T))
-
-grd_by_sp1 <- grd_by_sp %>%
-  left_join(grd_bastemvol, by = c("CLSTR_ID"))
-
-
-grd_by_sp2 <- grd_by_sp1  %>% 
-  left_join(VDYP_proj6, by = "CLSTR_ID") %>% 
-  #mutate_at(c('id','pages'), ~replace_na(.,0)) %>%
-  data.table
-
-grd_by_sp3 <- grd_by_sp2 %>%
-  left_join(sample_data7 %>% 
-              select(MGMT_UNIT, CLSTR_ID, Design, MEAS_YR,
-                     DEAD_STAND_VOLUME_175,
-                     fire_year:ntwb_mortality), 
-            by = "CLSTR_ID") %>%
-  mutate(DEAD_STAND_VOLUME_175 = replace_na(DEAD_STAND_VOLUME_175, 0)) 
-
-# *adjust burn impact on ground sample compiled volume and basal area, for those samples 
-# visited post burn, only if last full measurement;
-# *was prior to burn.  if a full remeasurement completed post burn, then do not adjust;
-grd_by_sp4 <- grd_by_sp3 %>%
-  mutate(BA_HA_LS = ifelse(!is.na(fire_year) & fire_year >= MEAS_YR, 
-                           BA_HA_LS * (1-ba_mortality), BA_HA_LS),
-         STEMS_HA_LS = ifelse(!is.na(fire_year) & fire_year >= MEAS_YR, 
-                              STEMS_HA_LS * (1-stem_mortality), STEMS_HA_LS),
-         NTWB_NVAF_LS = ifelse(!is.na(fire_year) & fire_year >= MEAS_YR, 
-                               NTWB_NVAF_LS * (1-ntwb_mortality), NTWB_NVAF_LS)
-  )
-
-
-saveRDS(grd_by_sp4, paste0(savepath, "/VDYP_proj.rds"))
-saveRDS(grd_by_sp3, paste0(savepath, "/lead_vol.rds"))
-
-
-################################################################################
-### Volume by species
-### Ground
-grdspc_vol <-faib_spcsmries  %>% 
-  filter(CLSTR_ID %in% sample_data7$CLSTR_ID, UTIL == ifelse(SPECIES == "PL", 12.5, 17.5)) %>%
-  mutate(SPC_GRP1 = substr(SPECIES,1,2)) %>%
-  mutate(SPC_GRP1 = ifelse(SPECIES %in% decidspc, 'DE', SPC_GRP1)) %>%  
-  group_by(CLSTR_ID) %>% 
-  select(SITE_IDENTIFIER, CLSTR_ID, SPECIES, SPC_GRP1, 
-         LIVE_VOL_PER_HA = VHA_NTWB_NVAF_LS, 
-         DEAD_VOL_PER_HA = VHA_NTWB_NVAF_DS) %>%
-  replace(is.na(.), 0) %>% 
-  ungroup() %>%
-  mutate(source = "Ground") %>%
-  data.table
-
-
-### Inventory
-inv_temp <- sample_data7 %>%
-  select(MGMT_UNIT, CLSTR_ID, SITE_IDENTIFIER, BEC_ZONE, SAMPLE_ESTABLISHMENT_TYPE, Design,
-         SPECIES_CD_1:SPECIES_CD_6, SPECIES_PCT_1:SPECIES_PCT_6, 
-         LIVE_VOL_PER_HA_SPP1_125:DEAD_VOL_PER_HA_SPP6_175)
-
-inv_temp1 <- inv_temp %>%
-  select(MGMT_UNIT,CLSTR_ID, SITE_IDENTIFIER, BEC_ZONE, SAMPLE_ESTABLISHMENT_TYPE, Design,
-         SPECIES_CD_1, SPECIES_CD_2, SPECIES_CD_3, SPECIES_CD_4, SPECIES_CD_5, SPECIES_CD_6) %>%
-  pivot_longer(cols = starts_with("SPECIES_CD_"), 
-               names_to = "NUM",
-               names_prefix = "SPECIES_CD_",
-               values_to = "SPECIES")
-
-inv_temp2 <- inv_temp %>%
-  select(CLSTR_ID, SITE_IDENTIFIER, SAMPLE_ESTABLISHMENT_TYPE, Design,
-         SPECIES_PCT_1, SPECIES_PCT_2, SPECIES_PCT_3, SPECIES_PCT_4, SPECIES_PCT_5, SPECIES_PCT_6) %>%
-  pivot_longer(cols = starts_with("SPECIES_PCT_"), 
-               names_to = "NUM",
-               names_prefix = "SPECIES_PCT_",
-               values_to = "SPECIES_PCT") 
-
-inv_temp3 <- inv_temp %>%
-  select(CLSTR_ID, SITE_IDENTIFIER, SAMPLE_ESTABLISHMENT_TYPE, Design,
-         LIVE_VOL_PER_HA_SPP1_125, LIVE_VOL_PER_HA_SPP2_125, LIVE_VOL_PER_HA_SPP3_125, 
-         LIVE_VOL_PER_HA_SPP4_125, LIVE_VOL_PER_HA_SPP5_125, LIVE_VOL_PER_HA_SPP6_125) %>%
-  pivot_longer(cols = starts_with("LIVE_VOL_PER_HA_"), 
-               names_to = "NUM",
-               names_prefix = "LIVE_VOL_PER_HA_SPP",
-               values_to = "LIVE_VOL_PER_HA_125") %>% 
-  mutate(NUM = gsub("(\\d+)_.*", "\\1", NUM))
-
-inv_temp4 <- inv_temp %>%
-  select(CLSTR_ID, SITE_IDENTIFIER, SAMPLE_ESTABLISHMENT_TYPE, Design,
-         LIVE_VOL_PER_HA_SPP1_175, LIVE_VOL_PER_HA_SPP2_175, LIVE_VOL_PER_HA_SPP3_175, 
-         LIVE_VOL_PER_HA_SPP4_175, LIVE_VOL_PER_HA_SPP5_175, LIVE_VOL_PER_HA_SPP6_175) %>%
-  pivot_longer(cols = starts_with("LIVE_VOL_PER_HA_"), 
-               names_to = "NUM",
-               names_prefix = "LIVE_VOL_PER_HA_SPP",
-               values_to = "LIVE_VOL_PER_HA_175") %>% 
-  mutate(NUM = gsub("(\\d+)_.*", "\\1", NUM))
-
-inv_temp5 <- inv_temp %>%
-  select(CLSTR_ID, SITE_IDENTIFIER, SAMPLE_ESTABLISHMENT_TYPE, Design,
-         DEAD_VOL_PER_HA_SPP1_125, DEAD_VOL_PER_HA_SPP2_125, DEAD_VOL_PER_HA_SPP3_125, 
-         DEAD_VOL_PER_HA_SPP4_125, DEAD_VOL_PER_HA_SPP5_125, DEAD_VOL_PER_HA_SPP6_125) %>%
-  pivot_longer(cols = starts_with("DEAD_VOL_PER_HA_"), 
-               names_to = "NUM",
-               names_prefix = "DEAD_VOL_PER_HA_",
-               values_to = "DEAD_VOL_PER_HA_125") %>% 
-  mutate(NUM = gsub("(\\d+)_.*.*", "\\1", NUM))
-
-inv_temp6 <- inv_temp %>%
-  select(CLSTR_ID, SITE_IDENTIFIER, SAMPLE_ESTABLISHMENT_TYPE, Design,
-         DEAD_VOL_PER_HA_SPP1_175, DEAD_VOL_PER_HA_SPP2_175, DEAD_VOL_PER_HA_SPP3_175, 
-         DEAD_VOL_PER_HA_SPP4_175, DEAD_VOL_PER_HA_SPP5_175, DEAD_VOL_PER_HA_SPP6_175) %>%
-  pivot_longer(cols = starts_with("DEAD_VOL_PER_HA_"), 
-               names_to = "NUM",
-               names_prefix = "DEAD_VOL_PER_HA_SPP",
-               values_to = "DEAD_VOL_PER_HA_175") %>% 
-  mutate(NUM = gsub("(\\d+)_.*", "\\1", NUM))
-
-
-inv_vol <- inv_temp1 %>%
-  left_join(inv_temp2, by = c("CLSTR_ID", "SITE_IDENTIFIER", "SAMPLE_ESTABLISHMENT_TYPE", "Design", "NUM")) %>%
-  left_join(inv_temp3, by = c("CLSTR_ID", "SITE_IDENTIFIER", "SAMPLE_ESTABLISHMENT_TYPE", "Design", "NUM")) %>%
-  left_join(inv_temp4, by = c("CLSTR_ID", "SITE_IDENTIFIER", "SAMPLE_ESTABLISHMENT_TYPE", "Design", "NUM")) %>%
-  left_join(inv_temp5, by = c("CLSTR_ID", "SITE_IDENTIFIER", "SAMPLE_ESTABLISHMENT_TYPE", "Design", "NUM")) %>%
-  left_join(inv_temp6, by = c("CLSTR_ID", "SITE_IDENTIFIER", "SAMPLE_ESTABLISHMENT_TYPE", "Design", "NUM")) %>%
-  filter(!is.na(SPECIES)) %>%
-  #mutate(DEAD_VOL_PER_HA_125 = replace_na(DEAD_VOL_PER_HA_125, 0),
-  #       DEAD_VOL_PER_HA_175 = replace_na(DEAD_VOL_PER_HA_175, 0)) %>%
-  replace(is.na(.), 0) %>% 
-  rowwise() %>%
-  # *further adjustments, corrections to species codes based on bec zone & expected outcome;
-  # *bec coast vs interior for species corrections;
-  mutate(bec_i_c = ifelse(BEC_ZONE %in% c('CWH','CDF','MH','CMA'), "C", "I"), 
-         SPECIES_INV = SPECIES,
-         SPECIES = case_when(SPECIES == "A" ~ "AT",
-                             SPECIES == "AX" ~ "AC",
-                             SPECIES == "C" ~ "CW",
-                             SPECIES %in% c("D", "RA") ~ "DR",
-                             SPECIES %in% c("E", "EXP", "EA") ~ "EP",
-                             SPECIES == "J" ~ "JR",
-                             SPECIES == "L" ~ "LW",
-                             SPECIES %in% c("P", "PLI") ~ "PL",
-                             SPECIES %in% c("FDI", "FDC") ~ "FD",
-                             SPECIES %in% c("SX", "SXL", "SXW") ~ "SW",
-                             SPECIES == "SXE" ~ "SE",
-                             SPECIES == "T" ~ "TW",
-                             SPECIES %in% c("X", "XC") ~ "XC",
-                             SPECIES == "ZH" ~ "XH",
-                             TRUE ~ substr(SPECIES, 1, 2)), 
-         # *further adjustments, corrections to species codes based on bec zone & expected outcome;
-         SPECIES = case_when(grepl("S", SPECIES) == T & BEC_ZONE == "ESSF" ~ "SE",
-                             grepl("S", SPECIES) == T & bec_i_c == "I" & BEC_ZONE != "ESSF" ~ "SW",
-                             grepl("S", SPECIES) == T & bec_i_c == "C" ~ "SS",
-                             grepl("B", SPECIES) == T & bec_i_c == "C" & BEC_ZONE %in% c('CWH','CDF') ~ "BG",
-                             grepl("B", SPECIES) == T & bec_i_c == "C" & !(BEC_ZONE %in% c('CWH','CDF')) ~ "BA",
-                             grepl("B", SPECIES) == T & bec_i_c == "I" ~ "BL",
-                             grepl("H", SPECIES) == T & bec_i_c == "C" & BEC_ZONE %in% c('CWH','CDF') ~ "HW",
-                             grepl("H", SPECIES) == T & bec_i_c == "C" & !(BEC_ZONE %in% c('CWH','CDF')) ~ "HM",
-                             grepl("H", SPECIES) == T & bec_i_c == "I" ~ "HW",
-                             TRUE ~ SPECIES),
-         SPC_GRP1 = ifelse(SPECIES %in% decidspc, 'DE', SPECIES),
-         LIVE_VOL_PER_HA = ifelse(SPECIES == "PL", LIVE_VOL_PER_HA_125, LIVE_VOL_PER_HA_175),
-         DEAD_VOL_PER_HA = ifelse(SPECIES == "PL", DEAD_VOL_PER_HA_125, DEAD_VOL_PER_HA_175),
-         DEAD_VOL_PER_HA = DEAD_VOL_PER_HA_175,
-         source = "Inventory") %>%
-  as.data.table()
-
-inv_vol <- inv_vol %>%
-  select(SITE_IDENTIFIER, CLSTR_ID, SPECIES, SPC_GRP1, LIVE_VOL_PER_HA, DEAD_VOL_PER_HA, source)
-
-
-vol_comp <- rbind(grdspc_vol, inv_vol)
-
-vol_comp <- vol_comp %>%
-  left_join(sample_data7 %>% select(CLSTR_ID, Design),
+VDYP_proj7 <- VDYP_proj6 %>%
+  left_join(sample_data7 %>% select(CLSTR_ID, FEATURE_ID_2023),
             by = "CLSTR_ID")
 
-saveRDS(vol_comp, paste0(savepath, "/spc_vol.rds"))
 
-
-
-VDYP_grd <- VDYP_grd %>%
-  filter(CLSTR_ID %in% sample_data7$CLSTR_ID)
-
-saveRDS(VDYP_grd, paste0(savepath, "/VDYP_grd.rds"))
-
+saveRDS(VDYP_proj6, paste0(savepath, "/VDYP_dat.rds"))
 
 
 ################################################################################
@@ -914,25 +656,6 @@ FH_dat <- FH_dat %>%
          SEVPERC_E = as.numeric(gsub("[^\\d]+", "", SEV_E, perl = T))) %>%
   data.frame
 
-## *only output unknown damage agents if leading damage agent only; - didnt seem to be applied
-#update_undefined_dam <- function(dam_agna, dam_agnt) {
-#  case_when(
-#    grepl('U', dam_agna, fixed = TRUE) & dam_agnt %in% c(NA, '','UF','UCR','UBT','UDT','U') ~ '',
-#    # *all other damage agents get output regardless of position;
-#    TRUE ~ dam_agnt)
-#}
-#
-#FH_dat <- FH_dat %>%
-#  mutate(DAM_AGNB = update_undefined_dam(DAM_AGNA, DAM_AGNB),
-#         DAM_AGNC = update_undefined_dam(DAM_AGNA, DAM_AGNC),
-#         DAM_AGND = update_undefined_dam(DAM_AGNA, DAM_AGND),
-#         DAM_AGNE = update_undefined_dam(DAM_AGNA, DAM_AGNE),
-#         DAM_AGNC = update_undefined_dam(DAM_AGNB, DAM_AGNC),
-#         DAM_AGND = update_undefined_dam(DAM_AGNB, DAM_AGND),
-#         DAM_AGNE = update_undefined_dam(DAM_AGNB, DAM_AGNE),
-#         DAM_AGND = update_undefined_dam(DAM_AGNC, DAM_AGND),
-#         DAM_AGNE = update_undefined_dam(DAM_AGNC, DAM_AGNE),
-#         DAM_AGNE = update_undefined_dam(DAM_AGND, DAM_AGNE))
 
 # *expande tree data so up to 5 damage agents per tree each on their own record for tracking all agents per tree;
 FH_dat1 <- melt(setDT(FH_dat),
@@ -972,9 +695,6 @@ FH_dat1 <- FH_dat1 %>%
     AGN %in% c('IDE') & SPC_GRP1 %in% c('FD') & 
       CLSTR_ID %in% c(sample_data7[sample_data7$MGMT_UNIT %in% c('TSA11_Kamloops','TSA29_Williams_Lake'),]$CLSTR_ID) ~ 'IDW',
     TRUE ~ AGN))
-
-#FH_dat1 <- FH_dat1 %>%
-#  mutate(AGN = ifelse(DAM_NUM == 1 & AGN == "", "O", AGN))
 
 FH_dat1_temp <- FH_dat1 %>%
   group_by(CLSTR_ID, PLOT, TREE_NO) %>%
@@ -1016,7 +736,6 @@ FH_dat1_1_1 <- FH_dat1_1_1 %>%
 #  arrange(CLSTR_ID, PLOT, TREE_NO, AGN, DAM_NUM, desc(dups), desc(selected)) %>%
 #  group_by(CLSTR_ID, PLOT, TREE_NO, AGN, dups, selected) %>%
 #  slice(1)
-
 
 ### Restructure the severity rating data
 sev_rusch1 <- sev_rusch %>%
@@ -1173,24 +892,6 @@ FH_dat2 <- FH_dat2 %>%
          # *create dbh classes;
          DBH_CLASS = round(DBH/5)*5)
 
-#FH_dat2 <- FH_dat2 %>%
-#  mutate(len_dam = nchar(AGN))  %>%
-#  rowwise() %>% 
-#  mutate(dam_1letter = toupper(substr(AGN, 1, 1)),
-#         dam_2letter = toupper(substr(AGN, 1, min(len_dam,2))),
-#         dam_3letter = toupper(substr(AGN, 1, min(len_dam,3))))
-#
-#FH_dat2 <- FH_dat2 %>%
-#  mutate(dam_class = case_when(dam_1letter %in% c('O', '') ~ 'None',
-#                               dam_1letter == 'U' ~ 'Unknown',
-#                               dam_1letter == 'N' ~ 'Abiotic',
-#                               dam_1letter == 'D' ~ 'Disease',
-#                               dam_1letter == 'I' ~ 'Insect',
-#                               dam_1letter == 'T' ~ 'Treatment',
-#                               dam_1letter == 'A' ~ 'Animal',
-#                               dam_1letter == 'X' ~ 'Frk_Crk_Btp',
-#                               TRUE ~ ''))
-
 FH_dat3 <- FH_dat2 %>%
   mutate(AGN = ifelse(AGN == '', 'O', AGN))
 
@@ -1321,5 +1022,408 @@ for (i in unique(Tree_FH_data1$tree_id)){
 
 ### Save data for application
 saveRDS(Tree_FH_data1, paste0(savepath, "/Tree_FH_data.rds"))
+
+
+
+
+
+################################################################################
+### Leading species
+### Ground
+# *get leading species by ba at 12.5cm util;
+grd_lead <-faib_spcsmries  %>% 
+  filter(CLSTR_ID %in% sample_data7$CLSTR_ID, UTIL == 12.5) %>%
+  mutate(SPC_GRP1 = substr(SPECIES,1,2)) %>%
+  mutate(SPC_GRP1 = ifelse(SPECIES %in% decidspc, 'DE', SPC_GRP1)) %>%  
+  group_by(CLSTR_ID) %>% 
+  arrange(desc(SP_PCT_BA_LS)) %>% 
+  slice(1) %>% 
+  select(SITE_IDENTIFIER, CLSTR_ID, SPECIES, SPC_GRP1)  
+
+### Age and ht of leading species
+grd_by_sp <- grd_lead %>%
+  left_join(faib_siteage, by = c("CLSTR_ID", "SPECIES")) %>%
+  left_join(faib_smeries %>% 
+              filter(CLSTR_ID %in% sample_data7$CLSTR_ID, UTIL == 4) %>% 
+              select(CLSTR_ID, SPB_CPCT_LS), by = c("CLSTR_ID"))
+
+### volume: 12.5 for PL 17.5 for others
+grd_bastemvol <-faib_spcsmries  %>% 
+  filter(CLSTR_ID %in% sample_data7$CLSTR_ID, UTIL == ifelse(SPECIES == "PL", 12.5, 17.5)) %>%
+  group_by(CLSTR_ID) %>% 
+  select(SITE_IDENTIFIER, CLSTR_ID, SPECIES, UTIL, 
+         BA_HA_LS, BA_HA_DS, 
+         STEMS_HA_LS, STEMS_HA_DS,
+         VHA_NTWB_NVAF_LS, VHA_NTWB_NVAF_DS) %>% 
+  # *sum volumes ba and tph at specified utilization limits across all species;
+  summarise(BA_HA_LS = sum(BA_HA_LS, na.rm = T),
+            BA_HA_DS = sum(BA_HA_DS, na.rm = T),
+            STEMS_HA_LS = sum(STEMS_HA_LS, na.rm = T),
+            STEMS_HA_DS = sum(STEMS_HA_DS, na.rm = T),
+            NTWB_NVAF_LS = sum(VHA_NTWB_NVAF_LS, na.rm = T),
+            NTWB_NVAF_DS = sum(VHA_NTWB_NVAF_DS, na.rm = T))
+
+grd_by_sp1 <- grd_by_sp %>%
+  left_join(grd_bastemvol, by = c("CLSTR_ID"))
+
+
+grd_by_sp2 <- grd_by_sp1  %>% 
+  left_join(VDYP_proj6, by = "CLSTR_ID") %>% 
+  #mutate_at(c('id','pages'), ~replace_na(.,0)) %>%
+  data.table
+
+grd_by_sp3 <- grd_by_sp2 %>%
+  left_join(sample_data7 %>% 
+              select(MGMT_UNIT, CLSTR_ID, Design, MEAS_YR,
+                     DEAD_STAND_VOLUME_175,
+                     fire_year:ntwb_mortality), 
+            by = "CLSTR_ID") %>%
+  mutate(DEAD_STAND_VOLUME_175 = replace_na(DEAD_STAND_VOLUME_175, 0)) 
+
+# *adjust burn impact on ground sample compiled volume and basal area, for those samples 
+# visited post burn, only if last full measurement;
+# *was prior to burn.  if a full remeasurement completed post burn, then do not adjust;
+grd_by_sp4 <- grd_by_sp3 %>%
+  mutate(BA_HA_LS = ifelse(!is.na(fire_year) & fire_year >= MEAS_YR, 
+                           BA_HA_LS * (1-ba_mortality), BA_HA_LS),
+         STEMS_HA_LS = ifelse(!is.na(fire_year) & fire_year >= MEAS_YR, 
+                              STEMS_HA_LS * (1-stem_mortality), STEMS_HA_LS),
+         NTWB_NVAF_LS = ifelse(!is.na(fire_year) & fire_year >= MEAS_YR, 
+                               NTWB_NVAF_LS * (1-ntwb_mortality), NTWB_NVAF_LS)
+  )
+
+
+saveRDS(grd_by_sp4, paste0(savepath, "/VDYP_proj.rds"))
+saveRDS(grd_by_sp3, paste0(savepath, "/lead_vol.rds"))
+
+
+################################################################################
+### Volume by species
+### Ground
+grdspc_vol <-faib_spcsmries  %>% 
+  filter(CLSTR_ID %in% sample_data7$CLSTR_ID, UTIL == ifelse(SPECIES == "PL", 12.5, 17.5)) %>%
+  mutate(SPC_GRP1 = substr(SPECIES,1,2)) %>%
+  mutate(SPC_GRP1 = ifelse(SPECIES %in% decidspc, 'DE', SPC_GRP1)) %>%  
+  group_by(CLSTR_ID) %>% 
+  select(SITE_IDENTIFIER, CLSTR_ID, SPECIES, SPC_GRP1, 
+         LIVE_VOL_PER_HA = VHA_NTWB_NVAF_LS, 
+         DEAD_VOL_PER_HA = VHA_NTWB_NVAF_DS) %>%
+  replace(is.na(.), 0) %>% 
+  ungroup() %>%
+  mutate(source = "Ground") %>%
+  data.table
+
+
+### Inventory
+inv_temp <- sample_data7 %>%
+  select(MGMT_UNIT, CLSTR_ID, SITE_IDENTIFIER, BEC_ZONE, SAMPLE_ESTABLISHMENT_TYPE, Design,
+         SPECIES_CD_1:SPECIES_CD_6, SPECIES_PCT_1:SPECIES_PCT_6, 
+         LIVE_VOL_PER_HA_SPP1_125:DEAD_VOL_PER_HA_SPP6_175)
+
+inv_temp1 <- inv_temp %>%
+  select(MGMT_UNIT,CLSTR_ID, SITE_IDENTIFIER, BEC_ZONE, SAMPLE_ESTABLISHMENT_TYPE, Design,
+         SPECIES_CD_1, SPECIES_CD_2, SPECIES_CD_3, SPECIES_CD_4, SPECIES_CD_5, SPECIES_CD_6) %>%
+  pivot_longer(cols = starts_with("SPECIES_CD_"), 
+               names_to = "NUM",
+               names_prefix = "SPECIES_CD_",
+               values_to = "SPECIES")
+
+inv_temp2 <- inv_temp %>%
+  select(CLSTR_ID, SITE_IDENTIFIER, SAMPLE_ESTABLISHMENT_TYPE, Design,
+         SPECIES_PCT_1, SPECIES_PCT_2, SPECIES_PCT_3, SPECIES_PCT_4, SPECIES_PCT_5, SPECIES_PCT_6) %>%
+  pivot_longer(cols = starts_with("SPECIES_PCT_"), 
+               names_to = "NUM",
+               names_prefix = "SPECIES_PCT_",
+               values_to = "SPECIES_PCT") 
+
+inv_temp3 <- inv_temp %>%
+  select(CLSTR_ID, SITE_IDENTIFIER, SAMPLE_ESTABLISHMENT_TYPE, Design,
+         LIVE_VOL_PER_HA_SPP1_125, LIVE_VOL_PER_HA_SPP2_125, LIVE_VOL_PER_HA_SPP3_125, 
+         LIVE_VOL_PER_HA_SPP4_125, LIVE_VOL_PER_HA_SPP5_125, LIVE_VOL_PER_HA_SPP6_125) %>%
+  pivot_longer(cols = starts_with("LIVE_VOL_PER_HA_"), 
+               names_to = "NUM",
+               names_prefix = "LIVE_VOL_PER_HA_SPP",
+               values_to = "LIVE_VOL_PER_HA_125") %>% 
+  mutate(NUM = gsub("(\\d+)_.*", "\\1", NUM))
+
+inv_temp4 <- inv_temp %>%
+  select(CLSTR_ID, SITE_IDENTIFIER, SAMPLE_ESTABLISHMENT_TYPE, Design,
+         LIVE_VOL_PER_HA_SPP1_175, LIVE_VOL_PER_HA_SPP2_175, LIVE_VOL_PER_HA_SPP3_175, 
+         LIVE_VOL_PER_HA_SPP4_175, LIVE_VOL_PER_HA_SPP5_175, LIVE_VOL_PER_HA_SPP6_175) %>%
+  pivot_longer(cols = starts_with("LIVE_VOL_PER_HA_"), 
+               names_to = "NUM",
+               names_prefix = "LIVE_VOL_PER_HA_SPP",
+               values_to = "LIVE_VOL_PER_HA_175") %>% 
+  mutate(NUM = gsub("(\\d+)_.*", "\\1", NUM))
+
+inv_temp5 <- inv_temp %>%
+  select(CLSTR_ID, SITE_IDENTIFIER, SAMPLE_ESTABLISHMENT_TYPE, Design,
+         DEAD_VOL_PER_HA_SPP1_125, DEAD_VOL_PER_HA_SPP2_125, DEAD_VOL_PER_HA_SPP3_125, 
+         DEAD_VOL_PER_HA_SPP4_125, DEAD_VOL_PER_HA_SPP5_125, DEAD_VOL_PER_HA_SPP6_125) %>%
+  pivot_longer(cols = starts_with("DEAD_VOL_PER_HA_"), 
+               names_to = "NUM",
+               names_prefix = "DEAD_VOL_PER_HA_",
+               values_to = "DEAD_VOL_PER_HA_125") %>% 
+  mutate(NUM = gsub("(\\d+)_.*.*", "\\1", NUM))
+
+inv_temp6 <- inv_temp %>%
+  select(CLSTR_ID, SITE_IDENTIFIER, SAMPLE_ESTABLISHMENT_TYPE, Design,
+         DEAD_VOL_PER_HA_SPP1_175, DEAD_VOL_PER_HA_SPP2_175, DEAD_VOL_PER_HA_SPP3_175, 
+         DEAD_VOL_PER_HA_SPP4_175, DEAD_VOL_PER_HA_SPP5_175, DEAD_VOL_PER_HA_SPP6_175) %>%
+  pivot_longer(cols = starts_with("DEAD_VOL_PER_HA_"), 
+               names_to = "NUM",
+               names_prefix = "DEAD_VOL_PER_HA_SPP",
+               values_to = "DEAD_VOL_PER_HA_175") %>% 
+  mutate(NUM = gsub("(\\d+)_.*", "\\1", NUM))
+
+
+inv_vol <- inv_temp1 %>%
+  left_join(inv_temp2, by = c("CLSTR_ID", "SITE_IDENTIFIER", "SAMPLE_ESTABLISHMENT_TYPE", "Design", "NUM")) %>%
+  left_join(inv_temp3, by = c("CLSTR_ID", "SITE_IDENTIFIER", "SAMPLE_ESTABLISHMENT_TYPE", "Design", "NUM")) %>%
+  left_join(inv_temp4, by = c("CLSTR_ID", "SITE_IDENTIFIER", "SAMPLE_ESTABLISHMENT_TYPE", "Design", "NUM")) %>%
+  left_join(inv_temp5, by = c("CLSTR_ID", "SITE_IDENTIFIER", "SAMPLE_ESTABLISHMENT_TYPE", "Design", "NUM")) %>%
+  left_join(inv_temp6, by = c("CLSTR_ID", "SITE_IDENTIFIER", "SAMPLE_ESTABLISHMENT_TYPE", "Design", "NUM")) %>%
+  filter(!is.na(SPECIES)) %>%
+  replace(is.na(.), 0) %>% 
+  rowwise() %>%
+  # *further adjustments, corrections to species codes based on bec zone & expected outcome;
+  # *bec coast vs interior for species corrections;
+  mutate(bec_i_c = ifelse(BEC_ZONE %in% c('CWH','CDF','MH','CMA'), "C", "I"), 
+         SPECIES_INV = SPECIES,
+         SPECIES = case_when(SPECIES == "A" ~ "AT",
+                             SPECIES == "AX" ~ "AC",
+                             SPECIES == "C" ~ "CW",
+                             SPECIES %in% c("D", "RA") ~ "DR",
+                             SPECIES %in% c("E", "EXP", "EA") ~ "EP",
+                             SPECIES == "J" ~ "JR",
+                             SPECIES == "L" ~ "LW",
+                             SPECIES %in% c("P", "PLI") ~ "PL",
+                             SPECIES %in% c("FDI", "FDC") ~ "FD",
+                             SPECIES %in% c("SX", "SXL", "SXW") ~ "SW",
+                             SPECIES == "SXE" ~ "SE",
+                             SPECIES == "T" ~ "TW",
+                             SPECIES %in% c("X", "XC") ~ "XC",
+                             SPECIES == "ZH" ~ "XH",
+                             TRUE ~ substr(SPECIES, 1, 2)), 
+         # *further adjustments, corrections to species codes based on bec zone & expected outcome;
+         SPECIES = case_when(grepl("S", SPECIES) == T & BEC_ZONE == "ESSF" ~ "SE",
+                             grepl("S", SPECIES) == T & bec_i_c == "I" & BEC_ZONE != "ESSF" ~ "SW",
+                             grepl("S", SPECIES) == T & bec_i_c == "C" ~ "SS",
+                             grepl("B", SPECIES) == T & bec_i_c == "C" & BEC_ZONE %in% c('CWH','CDF') ~ "BG",
+                             grepl("B", SPECIES) == T & bec_i_c == "C" & !(BEC_ZONE %in% c('CWH','CDF')) ~ "BA",
+                             grepl("B", SPECIES) == T & bec_i_c == "I" ~ "BL",
+                             grepl("H", SPECIES) == T & bec_i_c == "C" & BEC_ZONE %in% c('CWH','CDF') ~ "HW",
+                             grepl("H", SPECIES) == T & bec_i_c == "C" & !(BEC_ZONE %in% c('CWH','CDF')) ~ "HM",
+                             grepl("H", SPECIES) == T & bec_i_c == "I" ~ "HW",
+                             TRUE ~ SPECIES),
+         SPC_GRP1 = ifelse(SPECIES %in% decidspc, 'DE', SPECIES),
+         LIVE_VOL_PER_HA = ifelse(SPECIES == "PL", LIVE_VOL_PER_HA_125, LIVE_VOL_PER_HA_175),
+         DEAD_VOL_PER_HA = ifelse(SPECIES == "PL", DEAD_VOL_PER_HA_125, DEAD_VOL_PER_HA_175),
+         DEAD_VOL_PER_HA = DEAD_VOL_PER_HA_175,
+         source = "Inventory") %>%
+  as.data.table()
+
+inv_vol <- inv_vol %>%
+  select(SITE_IDENTIFIER, CLSTR_ID, SPECIES, SPC_GRP1, LIVE_VOL_PER_HA, DEAD_VOL_PER_HA, source)
+
+
+vol_comp <- rbind(grdspc_vol, inv_vol)
+
+vol_comp <- vol_comp %>%
+  left_join(sample_data7 %>% select(CLSTR_ID, Design),
+            by = "CLSTR_ID")
+
+saveRDS(vol_comp, paste0(savepath, "/spc_vol.rds"))
+
+
+
+VDYP_grd <- VDYP_grd %>%
+  filter(CLSTR_ID %in% sample_data7$CLSTR_ID)
+
+saveRDS(VDYP_grd, paste0(savepath, "/VDYP_grd.rds"))
+
+
+
+### 2) Import MSYT projection table (2024)
+msytfpath <- "/MSYT/2024/prov"
+### Input, output, and reference table
+MSYT_current_input <- fread(paste0(msytfpath,"/MSYT_prov_current_input.csv"))
+MSYT_current_output <- fread(paste0(msytfpath,"/MSYT_prov_current_input_output.csv"))
+MSYT_reference <- fread(paste0(msytfpath,"/MSYT_prov_reference.csv"))
+
+### Make sure the variable names match
+names(MSYT_reference) <- toupper(names(MSYT_reference))
+names(MSYT_current_input) <- toupper(names(MSYT_current_input))
+names(MSYT_current_output) <- toupper(names(MSYT_current_output))
+
+
+### Second, process MSYT projected volume data
+### Get list of MSYT FEATURE_ID and associate it with SITE_IDENTIFIER
+msyt1 <- sample_data7 %>% 
+  select(SITE_IDENTIFIER, VISIT_NUMBER, CLSTR_ID, FEATURE_ID, FEATURE_ID_2023, 
+         MGMT_UNIT, MEAS_YR, PROJ_AGE_ADJ) %>%
+  left_join(MSYT_reference, 
+            #by = c("FEATURE_ID"), suffix = c("_YSM", ""))
+            by = c("FEATURE_ID_2023" = "FEATURE_ID"), suffix = c("_YSM", ""))
+
+msyt <- msyt1 %>%
+  rowwise() %>%
+  mutate(
+    results_age = as.numeric(RSLT_AGE),
+    results_age_adj = ifelse(!is.na(results_age) & results_age > 0 & 
+                               !is.na(RSLT_REFERENCE_YEAR) & RSLT_REFERENCE_YEAR > 0, 
+                             results_age + (MEAS_YR - RSLT_REFERENCE_YEAR), NA),
+    results_age_adj = ifelse(results_age_adj <= 0, NA, results_age_adj),
+    # *create a new reference age, based on results if available, otherwise use proj_age_1;
+    # *do not use results age (unreliable) for tfl based programs, just default to vegcomp age;
+    ref_age_adj = ifelse(!is.na(results_age_adj) & results_age_adj > 0 & substr(MGMT_UNIT,1,3) != 'TFL', 
+                         results_age_adj, PROJ_AGE_ADJ),
+    ref_age_adj = ifelse(ref_age_adj < 10, 10, ref_age_adj),
+    ref_age_cd = ifelse(!is.na(results_age_adj) & results_age_adj > 0 & substr(MGMT_UNIT,1,3) != 'TFL', 
+                        "RESULTS", "VEGCOMP")) %>%
+  arrange(FEATURE_ID, SITE_IDENTIFIER, CLSTR_ID)
+
+### MSYT projected volume
+msyt_vol <- MSYT_current_output %>%
+  filter(FEATURE_ID %in% unique(msyt$FEATURE_ID)) %>%
+  select(FEATURE_ID, starts_with("MVCON_"), starts_with("MVDEC_")) %>%
+  mutate_at(vars(starts_with("MVCON_")), as.numeric) %>%
+  mutate_at(vars(starts_with("MVDEC_")), as.numeric) 
+
+msyt_vol1 <- tidyr::pivot_longer(msyt_vol, cols = matches('^MVCON_|^MVDEC_'), 
+                                 names_to = c('.value', 'AGE'), 
+                                 names_sep = '_') %>%
+  mutate_at(vars(MVCON, MVDEC), ~replace_na(., 0))
+
+msyt_vol2 <- msyt_vol1 %>%
+  mutate(AGE = as.numeric(AGE),
+         MVALL = MVCON + MVDEC,
+         NETVOL = MVALL,
+         NETVOL_CON = MVCON) %>%
+  filter(AGE >= 10)
+
+msyt_vol3_1 <- msyt_vol2 %>% 
+  expand(FEATURE_ID, AGE = full_seq(c(AGE, 250), 1))
+
+msyt_vol4 <- msyt_vol3_1 %>%
+  left_join(msyt_vol2, by = c("FEATURE_ID", "AGE"))
+
+msyt_vol5 <- msyt_vol4 %>% 
+  group_by(FEATURE_ID) %>% 
+  mutate(netvol = zoo::na.approx(NETVOL, AGE, rule = 2),
+         netvol_con = zoo::na.approx(NETVOL_CON, AGE, rule = 2)) %>% 
+  ungroup()
+
+
+msyt1 <- msyt %>%
+  left_join(msyt_vol5, by = c("FEATURE_ID", "ref_age_adj" = "AGE")) %>%
+  distinct
+
+
+prj_grd_msyt_vdyp <- msyt1 %>%
+  left_join(VDYP_proj6 %>% select(-BEC_ZONE, -PROJ_AGE_ADJ), 
+            by = c("FEATURE_ID", "CLSTR_ID")) %>%
+  left_join(vol_comp %>% 
+              filter(source == "Ground") %>% 
+              group_by(CLSTR_ID) %>% 
+              summarise(LIVE_VOL_PER_HA = sum(LIVE_VOL_PER_HA, na.rm = T)), 
+            by = c("CLSTR_ID")) %>%
+  ungroup() %>%
+  mutate(
+    yt_source = case_when(grepl('Managed:',CURRENT_YIELD) ~ "Managed",
+                          grepl('AGGREGATE', toupper(CURRENT_YIELD)) ~ "AGGREGATE",
+                          TRUE ~ CURRENT_YIELD),
+    ### If not available in MSYT but is in VDYP runs
+    yt_source = ifelse(is.na(yt_source) & !is.na(vdyp_vol_dwb), "VDYP-fill_missed_tsr", yt_source),
+    ### Managed but no projection
+    yt_source = ifelse(yt_source == "Managed" & is.na(netvol), "VDYP-fill_missed_tsr", yt_source),
+    yt_source_f = factor(yt_source, 
+                         levels = c("Managed", "AGGREGATE", "VDYP",  "VDYP-fill_missed_tsr", "Excluded"), 
+                         ordered = T),
+    current_vol = ifelse(!is.na(netvol), netvol, vdyp_vol_dwb),
+    volTSR = ifelse(yt_source %in% c("Managed","AGGREGATE"), netvol,   
+                    ifelse(yt_source %in% c("VDYP", "VDYP-fill_missed_tsr"), vdyp_vol_dwb, NA)),
+    grdnv = ifelse(is.na(LIVE_VOL_PER_HA), 0, LIVE_VOL_PER_HA),
+    prednv = ifelse(is.na(current_vol), 0, current_vol),
+    voldiffTSR = prednv - grdnv)  
+
+
+### Save data for application
+saveRDS(prj_grd_msyt_vdyp, paste0(savepath, "/prj_msyt_vdyp.rds"))
+
+
+### TSR projected volume
+tsr_volproj <- sample_data7 %>% 
+  expand(nesting(CLSTR_ID, LAYER_ID), AGE = full_seq(c(30, 250), 10))
+
+tsr_volproj1 <- tsr_volproj %>%
+  left_join(sample_data7 %>% select(FEATURE_ID, FEATURE_ID_2023, SITE_IDENTIFIER, VISIT_NUMBER, CLSTR_ID, LAYER_ID, MEAS_YR, 
+                                    MGMT_UNIT, PROJ_AGE_ADJ, TSA_DESC,
+                                    BEC_ZONE_YSM = BEC_ZONE, BEC_SBZ_YSM = BEC_SBZ, BEClabel) %>% 
+              distinct(), 
+            by = c("CLSTR_ID", "LAYER_ID"))
+
+tsr_volproj2_2 <- tsr_volproj1 %>%
+  left_join(msyt_vol5, by = c("FEATURE_ID", "AGE"))
+
+tsr_volproj3_1 <- tsr_volproj2_2 %>%
+  mutate(LAYER_ID = as.character(LAYER_ID)) %>%
+  left_join(VDYP_proj_all %>% select(-PROJ_AGE_ADJ, -CLSTR_ID) %>% distinct(), 
+            by = c( "FEATURE_ID","LAYER_ID", "AGE" = "PRJ_TOTAL_AGE")) %>%
+  left_join(MSYT_reference %>% select(-BEC_ZONE), 
+by = c("FEATURE_ID_2023" = "FEATURE_ID"), suffix = c("_YSM", ""))
+
+tsr_volproj3 <- tsr_volproj3_1 %>%
+  rowwise() %>%
+  mutate(
+    results_age = as.numeric(RSLT_AGE),
+    results_age_adj = ifelse(!is.na(results_age) & results_age > 0 & 
+                               !is.na(RSLT_REFERENCE_YEAR) & RSLT_REFERENCE_YEAR > 0, 
+                             results_age + (MEAS_YR - RSLT_REFERENCE_YEAR), NA),
+    results_age_adj = ifelse(results_age_adj <= 0, NA, results_age_adj),
+    # *create a new reference age, based on results if available, otherwise use proj_age_1;
+    # *do not use results age (unreliable) for tfl based programs, just default to vegcomp age;
+    ref_age_adj = ifelse(!is.na(results_age_adj) & results_age_adj > 0 & substr(MGMT_UNIT,1,3) != 'TFL', 
+                         results_age_adj, PROJ_AGE_ADJ),
+    ref_age_adj = ifelse(ref_age_adj < 10, 10, ref_age_adj),
+    ref_age_cd = ifelse(!is.na(results_age_adj) & results_age_adj > 0 & substr(MGMT_UNIT,1,3) != 'TFL', 
+                        "RESULTS", "VEGCOMP")) %>%
+  arrange(FEATURE_ID, SITE_IDENTIFIER, CLSTR_ID)
+
+tsr_volproj4 <- tsr_volproj3 %>%
+  rowwise() %>%
+  mutate(results_age = as.numeric(RSLT_AGE),
+         results_age_adj = ifelse(!is.na(results_age) & results_age > 0 & 
+                                    !is.na(RSLT_REFERENCE_YEAR) & RSLT_REFERENCE_YEAR > 0, 
+                                  results_age + (MEAS_YR - RSLT_REFERENCE_YEAR), NA),
+         results_age_adj = ifelse(results_age_adj <= 0, NA, results_age_adj),
+         # *create a new reference age, based on results if available, otherwise use proj_age_1;
+         # *do not use results age (unreliable) for tfl based programs, just default to vegcomp age;
+         ref_age_adj = ifelse(!is.na(results_age_adj) & results_age_adj > 0 & substr(MGMT_UNIT,1,3) != 'TFL', 
+                              results_age_adj, PROJ_AGE_ADJ),
+         ref_age_adj = ifelse(ref_age_adj < 10, 10, ref_age_adj),
+         ref_age_cd = ifelse(!is.na(results_age_adj) & results_age_adj > 0 & substr(MGMT_UNIT,1,3) != 'TFL', 
+                             "RESULTS", "VEGCOMP"),
+         
+         yt_source = case_when(grepl('Managed:',CURRENT_YIELD) ~ "Managed",
+                               grepl('AGGREGATE', toupper(CURRENT_YIELD)) ~ "AGGREGATE",
+                               TRUE ~ CURRENT_YIELD),
+         ### If not available in MSYT but is in VDYP runs
+         yt_source = ifelse(is.na(yt_source) & !is.na(vdyp_vol_dwb), "VDYP-fill_missed_tsr", yt_source),
+         ### Managed but no projection
+         yt_source = ifelse(yt_source == "Managed" & is.na(netvol), "VDYP-fill_missed_tsr", yt_source),
+         yt_source_f = factor(yt_source, 
+                              levels = c("Managed", "AGGREGATE", "VDYP",  "VDYP-fill_missed_tsr", "Excluded"), 
+                              ordered = T),
+         current_vol = ifelse(!is.na(netvol), netvol, vdyp_vol_dwb),
+         volTSR = ifelse(yt_source %in% c("Managed","AGGREGATE"), netvol,   
+                         ifelse(yt_source %in% c("VDYP", "VDYP-fill_missed_tsr"), vdyp_vol_dwb, NA)),
+         prednv = ifelse(is.na(current_vol), 0, current_vol),
+         volTSR = ifelse(is.na(volTSR), 0, volTSR))
+
+
+
+saveRDS(tsr_volproj4, paste0(savepath,"/tsr_volproj.rds"))
+
 
 
